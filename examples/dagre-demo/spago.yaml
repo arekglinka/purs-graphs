@@ -2,6 +2,7 @@ package:
   name: dagre-demo
   dependencies:
     - prelude
+    - arrays
     - effect
     - maybe
     - ordered-collections

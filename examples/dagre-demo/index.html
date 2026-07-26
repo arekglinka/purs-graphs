@@ -3,10 +3,49 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>dagre-demo — Build Pipeline Layout</title>
+    <title>dagre-demo — Interactive Graph Layout</title>
     <style>
-      body { font-family: sans-serif; margin: 2rem; }
-      h1 { color: #1976d2; }
+      * { box-sizing: border-box; }
+      body { font-family: sans-serif; margin: 0; padding: 2rem; background: #fafafa; color: #333; }
+      h1 { color: #1976d2; margin: 0 0 0.25rem; font-size: 1.5rem; }
+      h3 { margin: 0 0 0.5rem; font-size: 1rem; color: #555; }
+
+      .header { margin-bottom: 1.5rem; }
+      .header p { margin: 0; color: #666; font-size: 0.9rem; }
+
+      .layout { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }
+      .controls { width: 320px; display: flex; flex-direction: column; gap: 1rem; }
+      .canvas { flex: 1; min-width: 300px; }
+
+      .control-group { display: flex; flex-direction: column; gap: 0.4rem; }
+      .control-group label { font-size: 0.8rem; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.03em; }
+
+      .inline-form { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+      .inline-form input { width: 90px; }
+      .inline-form select { width: 90px; }
+
+      input, select, textarea {
+        padding: 0.4rem 0.5rem; border: 1px solid #ccc; border-radius: 4px;
+        font-size: 0.85rem; font-family: inherit; background: white;
+      }
+      input:focus, select:focus, textarea:focus { outline: none; border-color: #1976d2; }
+
+      .btn {
+        padding: 0.4rem 0.8rem; background: #1976d2; color: white; border: none;
+        border-radius: 4px; cursor: pointer; font-size: 0.85rem; white-space: nowrap;
+      }
+      .btn:hover { background: #1565c0; }
+
+      .chip-list { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+      .chip {
+        display: inline-block; padding: 0.2rem 0.6rem; border-radius: 12px;
+        font-size: 0.8rem; cursor: pointer; user-select: none; transition: opacity 0.15s;
+      }
+      .chip:hover { opacity: 0.6; }
+      .node-chip { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+      .edge-chip { background: #f3e5f5; color: #7b1fa2; border: 1px solid #ce93d8; }
+
+      .canvas svg { max-width: 100%; height: auto; }
     </style>
   </head>
   <body>

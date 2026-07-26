@@ -5,6 +5,7 @@
         "path": "examples/dagre-demo",
         "core": {
           "dependencies": [
+            "arrays",
             "effect",
             "foldable-traversable",
             "halogen",

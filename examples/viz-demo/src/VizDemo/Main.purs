@@ -1,13 +1,14 @@
--- | viz-demo: a Halogen app that renders the same 5-node build-pipeline graph
--- | using viz.js (DOT → SVG string).
+-- | viz-demo: an interactive DOT playground using viz.js.
+-- |
+-- | Users can edit DOT source, switch layout engines, and see the SVG
+-- | re-render live.
 module VizDemo.Main where
 
 import Prelude
 
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Data.String (joinWith)
-import Data.String (Pattern(..), indexOf, drop)
+import Data.String (Pattern(..), indexOf, drop, joinWith)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff, liftAff)
@@ -15,11 +16,12 @@ import Effect.Class (liftEffect)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
+import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Hooks as Hooks
 import Halogen.VDom.Driver (runUI)
-import Viz (new)
-import Viz.Render (renderString)
+import Viz (VizInstance, new)
+import Viz.Render (Engine(..), engineToString, renderString)
 
 -- | Inject raw HTML into a DOM element by ID (used for SVG from viz.js).
 foreign import setInnerHTMLById :: String -> String -> Effect Unit
@@ -32,14 +34,21 @@ extractSvg s =
     Just i -> drop i s
     Nothing -> s
 
--- | The same pipeline graph, expressed as DOT source.
-dotSource :: String
-dotSource =
+-- | The initial DOT source shown in the editor.
+initialDot :: String
+initialDot =
   "digraph pipeline {\n"
     <> "  rankdir=TB;\n"
     <> "  node [shape=box, style=rounded, fontname=\"sans-serif\"];\n"
     <> "  source -> compile -> link -> test -> package;\n"
     <> "}\n"
+
+type State =
+  { dot :: String
+  , engine :: Engine
+  , svgOutput :: Maybe (Either (Array String) String)
+  , vizInstance :: Maybe VizInstance
+  }
 
 main :: Effect Unit
 main = HA.runHalogenAff do
@@ -48,33 +57,97 @@ main = HA.runHalogenAff do
 
 component :: forall q i o m. MonadAff m => H.Component q i o m
 component = Hooks.component \_ _ -> Hooks.do
-  Tuple svg svgId <- Hooks.useState (Nothing :: Maybe String)
-  Tuple error errorId <- Hooks.useState (Nothing :: Maybe String)
+  Tuple st stId <- Hooks.useState
+    { dot: initialDot
+    , engine: Dot
+    , svgOutput: Nothing
+    , vizInstance: Nothing
+    }
 
+  -- Create viz instance once, then do initial render
   Hooks.useLifecycleEffect do
     viz <- liftAff new
-    case renderString viz dotSource Nothing of
-      Right s -> do
-        Hooks.put svgId (Just s)
-        liftEffect $ setInnerHTMLById "svg-container" (extractSvg s)
-      Left errs -> Hooks.put errorId (Just (joinWith "\n" errs))
+    let result = renderString viz initialDot (Just { format: "svg", engine: Dot })
+    Hooks.put stId { dot: initialDot, engine: Dot, svgOutput: Just result, vizInstance: Just viz }
+    case result of
+      Right svg -> liftEffect $ setInnerHTMLById "svg-container" (extractSvg svg)
+      Left _ -> pure unit
     pure Nothing
 
+  let
+    doRender viz dot engine = do
+      let result = renderString viz dot (Just { format: "svg", engine })
+      Hooks.put stId { dot, engine, svgOutput: Just result, vizInstance: Just viz }
+      case result of
+        Right svg -> liftEffect $ setInnerHTMLById "svg-container" (extractSvg svg)
+        Left _ -> pure unit
+
+    onRender = do
+      s <- Hooks.get stId
+      case s.vizInstance of
+        Just viz -> doRender viz s.dot s.engine
+        Nothing -> pure unit
+
+    onEngineChange v = do
+      s <- Hooks.get stId
+      let engine = case v of
+            "neato" -> Neato
+            "fdp" -> Fdp
+            "circo" -> Circo
+            "twopi" -> Twopi
+            _ -> Dot
+      case s.vizInstance of
+        Just viz -> doRender viz s.dot engine
+        Nothing -> pure unit
+
+    onDotChange v =
+      Hooks.modify_ stId \s -> s { dot = v }
+
   Hooks.pure $
-    HH.div_
-      [ HH.h1_ [ HH.text "viz-demo — DOT to SVG via viz.js" ]
-      , HH.p_ [ HH.text "The same 5-node build-pipeline graph, rendered by Graphviz." ]
-      , HH.h2_ [ HH.text "DOT source" ]
-      , HH.pre [ HP.style "background: #f5f5f5; padding: 1rem; overflow-x: auto;" ]
-          [ HH.code_ [ HH.text dotSource ] ]
-      , HH.h2_ [ HH.text "Rendered SVG" ]
-      , HH.div [ HP.id "svg-container", HP.style "border: 1px solid #ddd; padding: 1rem; overflow-x: auto;" ] []
-      , HH.h2_ [ HH.text "SVG source" ]
-      , case svg of
-          Just s ->
-            HH.pre [ HP.style "background: #e8f5e9; padding: 1rem; overflow-x: auto; max-height: 300px;" ]
-              [ HH.code_ [ HH.text s ] ]
-          Nothing -> case error of
-            Just e -> HH.pre [ HP.style "color: red;" ] [ HH.text e ]
-            Nothing -> HH.p_ [ HH.text "Rendering..." ]
+    HH.div [ HP.class_ (HH.ClassName "app") ]
+      [ HH.div [ HP.class_ (HH.ClassName "header") ]
+          [ HH.h1_ [ HH.text "viz-demo" ]
+          , HH.p_ [ HH.text "Edit DOT source, switch engines, re-render live." ]
+          ]
+      , HH.div [ HP.class_ (HH.ClassName "layout") ]
+          [ HH.div [ HP.class_ (HH.ClassName "controls") ]
+              [ HH.div [ HP.class_ (HH.ClassName "control-group") ]
+                  [ HH.label_ [ HH.text "DOT Source" ]
+                  , HH.textarea
+                      [ HP.value st.dot
+                      , HE.onValueInput onDotChange
+                      , HP.class_ (HH.ClassName "dot-editor")
+                      , HP.rows 8
+                      , HP.spellcheck false
+                      ]
+                  ]
+              , HH.div [ HP.class_ (HH.ClassName "control-group") ]
+                  [ HH.label_ [ HH.text "Layout Engine" ]
+                  , HH.select
+                      [ HE.onValueChange onEngineChange
+                      , HP.value (engineToString st.engine)
+                      ]
+                      [ HH.option [ HP.value "dot" ] [ HH.text "dot (hierarchical)" ]
+                      , HH.option [ HP.value "neato" ] [ HH.text "neato (spring)" ]
+                      , HH.option [ HP.value "fdp" ] [ HH.text "fdp (force-directed)" ]
+                      , HH.option [ HP.value "circo" ] [ HH.text "circo (circular)" ]
+                      , HH.option [ HP.value "twopi" ] [ HH.text "twopi (radial)" ]
+                      ]
+                  , HH.button
+                      [ HE.onClick \_ -> onRender
+                      , HP.class_ (HH.ClassName "btn")
+                      ]
+                      [ HH.text "Render" ]
+                  ]
+              ]
+          , HH.div [ HP.class_ (HH.ClassName "canvas") ]
+              [ HH.h3_ [ HH.text "Rendered SVG" ]
+              , HH.div [ HP.id "svg-container", HP.class_ (HH.ClassName "svg-container") ] []
+              , case st.svgOutput of
+                  Just (Left errs) ->
+                    HH.pre [ HP.class_ (HH.ClassName "error-box") ]
+                      [ HH.code_ [ HH.text (joinWith "\n" errs) ] ]
+                  _ -> HH.text ""
+              ]
+          ]
       ]
