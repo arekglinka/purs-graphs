@@ -11,8 +11,9 @@ package:
   build:
     strict: false
   test:
-    main: Test.Main
+    main: Test.VizMain
     dependencies:
       - spec
       - either
       - strings
+      - aff

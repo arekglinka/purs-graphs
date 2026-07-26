@@ -1,16 +1,15 @@
 -- | viz-demo: a Halogen app that renders the same 5-node build-pipeline graph
 -- | using viz.js (DOT → SVG string).
-module Main where
+module VizDemo.Main where
 
 import Prelude
 
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Data.String (joinWith)
+import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff, liftAff)
-import Effect.Class (class MonadEffect)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
@@ -36,8 +35,8 @@ main = HA.runHalogenAff do
 
 component :: forall q i o m. MonadAff m => H.Component q i o m
 component = Hooks.component \_ _ -> Hooks.do
-  svg /\ svgId <- Hooks.useState (Nothing :: Maybe String)
-  error /\ errorId <- Hooks.useState (Nothing :: Maybe String)
+  Tuple svg svgId <- Hooks.useState (Nothing :: Maybe String)
+  Tuple error errorId <- Hooks.useState (Nothing :: Maybe String)
 
   Hooks.useLifecycleEffect do
     viz <- liftAff new

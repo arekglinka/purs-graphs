@@ -1,6 +1,6 @@
 -- | dagre-demo: a Halogen app that lays out a 5-node build-pipeline graph
 -- | using purs-dagre and renders it as SVG via the Halogen HTML DSL.
-module Main where
+module DagreDemo.Main where
 
 import Prelude
 
@@ -22,7 +22,7 @@ import Dagre.Graph
   , setRankDir
   ) as Dagre
 import Effect (Effect)
-import Effect.Class (liftEffect)
+import Effect.Class (class MonadEffect, liftEffect)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
@@ -54,9 +54,9 @@ main = HA.runHalogenAff do
   body <- HA.awaitBody
   runUI component unit body
 
-component :: forall q i o m. H.Component q i o m
+component :: forall q i o m. MonadEffect m => H.Component q i o m
 component = Hooks.component \_ _ -> Hooks.do
-  positions /\ positionsId <-
+  Tuple positions positionsId <-
     Hooks.useState (Nothing :: Maybe (Map String Position))
 
   Hooks.useLifecycleEffect do
@@ -97,7 +97,7 @@ buildAndLayout = do
 svgNS :: H.Namespace
 svgNS = H.Namespace "http://www.w3.org/2000/svg"
 
-svgEl :: forall w i. String -> Array (HH.IProp w i) -> Array (HH.HTML w i) -> HH.HTML w i
+svgEl :: forall r i w. String -> Array (HH.IProp r i) -> Array (HH.HTML w i) -> HH.HTML w i
 svgEl name = HH.elementNS svgNS (H.ElemName name)
 
 svgAttr :: forall r i. String -> String -> HH.IProp r i

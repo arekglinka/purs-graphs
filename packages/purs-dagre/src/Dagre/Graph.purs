@@ -31,7 +31,7 @@ import Dagre
   , nodes
   , setEdgeImpl
   , setNodeImpl
-  , setRankDir as setRankDirImpl
+  , setRankDir
   ) as Dagre
 import Data.Maybe (Maybe(..))
 import Data.Nullable (toMaybe)
@@ -75,7 +75,7 @@ new = Graph <$> Dagre.newGraph
 
 -- | Set the rank direction. Call before `layout`.
 setRankDir :: RankDir -> Graph -> Effect Unit
-setRankDir dir (Graph g) = Dagre.setRankDirImpl g (rankDirToString dir)
+setRankDir dir (Graph g) = Dagre.setRankDir g (rankDirToString dir)
 
 -- | Add or update a node with the given options.
 setNode :: NodeOptions -> Graph -> Effect Unit

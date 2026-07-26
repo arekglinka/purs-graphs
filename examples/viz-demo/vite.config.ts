@@ -1,8 +1,8 @@
 import { defineConfig } from "vite";
+import { fileURLToPath, URL } from "node:url";
 
 export default defineConfig({
   root: ".",
-  publicDir: "public",
   server: {
     port: 5174,
     open: true,
@@ -10,5 +10,10 @@ export default defineConfig({
   build: {
     outDir: "dist",
     target: "esnext",
+  },
+  resolve: {
+    alias: {
+      "@viz-js/viz": fileURLToPath(new URL("node_modules/@viz-js/viz", import.meta.url)),
+    },
   },
 });

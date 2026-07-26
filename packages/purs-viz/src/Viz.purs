@@ -17,6 +17,7 @@ module Viz
 
 import Prelude
 
+import Data.Either (Either(..))
 import Data.Function.Uncurried (Fn4, runFn4)
 import Data.Nullable (Nullable)
 import Effect (Effect)

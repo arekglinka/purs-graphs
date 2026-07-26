@@ -43,9 +43,9 @@ Both examples render the **same 5-node build pipeline** (source → compile → 
 ## Build & Test
 
 ```bash
-spago build                                          # all packages + examples
-spago test --config packages/purs-dagre/spago.yaml   # dagre tests
-spago test --config packages/purs-viz/spago.yaml     # viz tests
+spago build                  # all packages + examples
+spago test -p purs-dagre     # dagre tests
+spago test -p purs-viz       # viz tests
 ```
 
 ## Enterprise Forks

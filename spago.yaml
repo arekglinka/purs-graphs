@@ -3,6 +3,7 @@ workspace:
     registry: "61.0.0"
   backend:
     cmd: "purs-backend-es"
+    args: ["build"]
   buildOpts:
     censorLibraryWarnings: all
     statVerbosity: "compact-stats"

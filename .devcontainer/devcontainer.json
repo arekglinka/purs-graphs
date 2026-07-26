@@ -1,7 +1,7 @@
 {
   "name": "purs-graphs-dev",
   "//image-comment": "Replace YOUR_GH_OWNER with your GitHub owner/org. Enterprise forks: set this to ghcr.io/<your-org>/purs-graphs-dev. The image: key is used for fast pull; the build: key enables explicit rebuilds from Dockerfile.",
-  "image": "ghcr.io/YOUR_GH_OWNER/purs-graphs-dev:latest",
+  "image": "ghcr.io/arekglinka/purs-graphs-dev:latest",
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."

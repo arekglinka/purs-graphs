@@ -9,7 +9,8 @@ package:
   build:
     strict: false
   test:
-    main: Test.Main
+    main: Test.DagreMain
     dependencies:
       - spec
       - arrays
+      - aff

@@ -1,4 +1,4 @@
-module Test.Main where
+module Test.DagreMain where
 
 import Prelude
 
@@ -18,6 +18,7 @@ import Dagre.Graph
 import Data.Maybe (Maybe(..), isJust)
 import Data.Traversable (traverse_)
 import Effect (Effect)
+import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldSatisfy)
@@ -50,7 +51,7 @@ buildGraph = do
   pure g
 
 main :: Effect Unit
-main = run [ consoleReporter ] do
+main = launchAff_ $ run [ consoleReporter ] do
   describe "Dagre.Graph" do
     it "creates a graph and lists all node ids" do
       g <- liftEffect buildGraph

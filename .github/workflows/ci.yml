@@ -38,10 +38,10 @@ jobs:
         run: spago build
 
       - name: Test purs-dagre
-        run: spago test --config packages/purs-dagre/spago.yaml
+        run: spago test -p purs-dagre
 
       - name: Test purs-viz
-        run: spago test --config packages/purs-viz/spago.yaml
+        run: spago test -p purs-viz
 
       - name: Build dagre-demo example
         run: |
