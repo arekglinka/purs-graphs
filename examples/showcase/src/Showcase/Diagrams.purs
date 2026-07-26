@@ -9,28 +9,66 @@ import Data.String (joinWith)
 
 type NodeInfo = { id :: String, label :: String, detail :: String }
 
+type NodeStyle = { id :: String, fill :: String, stroke :: String, subtitle :: String }
+
+type DagreCluster = { label :: String, nodes :: Array String }
+
 type DiagramSpec =
   { id :: String
   , title :: String
   , category :: String
   , description :: String
   , dagreNodes :: Array NodeOptions
-  , dagreEdges :: Array { source :: String, target :: String }
+  , dagreEdges :: Array { source :: String, target :: String, label :: String, dashed :: Boolean }
   , dagreRankDir :: RankDir
   , dotSource :: String
   , nodeInfo :: Array NodeInfo
+  , dagreStyles :: Array NodeStyle
+  , dagreClusters :: Array DagreCluster
   }
 
 type Category = { name :: String, ids :: Array String }
 
 mkNode :: String -> String -> NodeOptions
-mkNode id label = { id, width: 130.0, height: 44.0, label }
+mkNode id label = { id, width: 160.0, height: 58.0, label }
 
 mkInfo :: String -> String -> String -> NodeInfo
 mkInfo id label detail = { id, label, detail }
 
-e :: String -> String -> { source :: String, target :: String }
-e source target = { source, target }
+e :: String -> String -> { source :: String, target :: String, label :: String, dashed :: Boolean }
+e source target = { source, target, label: "", dashed: false }
+
+el
+  :: String
+  -> String
+  -> String
+  -> { source :: String, target :: String, label :: String, dashed :: Boolean }
+el source target label = { source, target, label, dashed: false }
+
+ed
+  :: String
+  -> String
+  -> String
+  -> { source :: String, target :: String, label :: String, dashed :: Boolean }
+ed source target label = { source, target, label, dashed: true }
+
+cluster :: String -> Array String -> DagreCluster
+cluster label nodes = { label, nodes }
+
+sEntry :: String -> String -> NodeStyle
+sEntry id subtitle = { id, fill: "#bbdefb", stroke: "#1976d2", subtitle }
+
+sProcess :: String -> String -> NodeStyle
+sProcess id subtitle = { id, fill: "#ffe0b2", stroke: "#f57c00", subtitle }
+
+sCache :: String -> String -> NodeStyle
+sCache id subtitle = { id, fill: "#c8e6c9", stroke: "#388e3c", subtitle }
+
+sDist :: String -> String -> NodeStyle
+sDist id subtitle = { id, fill: "#f8bbd0", stroke: "#c2185b", subtitle }
+
+sAdvanced :: String -> String -> NodeStyle
+sAdvanced id subtitle = { id, fill: "#e1bee7", stroke: "#7b1fa2", subtitle }
 
 scaleDiagram :: DiagramSpec
 scaleDiagram =
@@ -102,6 +140,19 @@ scaleDiagram =
       , mkInfo "shard" "DB Sharding"
           "Partition the database horizontally across multiple servers to scale writes."
       ]
+  , dagreStyles:
+      [ sEntry "single" "Web + DB + App"
+      , sEntry "webdb" "Separate Servers"
+      , sProcess "lb" "Traffic Distribution"
+      , sProcess "replica" "Master + Replicas"
+      , sCache "cache" "Redis / Memcached"
+      , sCache "cdn" "Edge Content Delivery"
+      , sDist "stateless" "Auto-Scaling"
+      , sDist "multiDC" "Geo-Distribution"
+      , sAdvanced "mq" "Async Decoupling"
+      , sAdvanced "shard" "Horizontal Partitioning"
+      ]
+  , dagreClusters: []
   }
 
 blueprintDiagram :: DiagramSpec
@@ -126,7 +177,7 @@ blueprintDiagram =
       ]
   , dagreEdges:
       [ e "dns" "lb"
-      , e "dns" "cdn"
+      , el "dns" "cdn" "static"
       , e "lb" "web1"
       , e "lb" "web2"
       , e "lb" "web3"
@@ -136,10 +187,10 @@ blueprintDiagram =
       , e "web2" "queue"
       , e "web3" "cache"
       , e "web3" "queue"
-      , e "cache" "master"
-      , e "master" "slave"
-      , e "queue" "worker"
-      , e "worker" "master"
+      , el "cache" "master" "miss"
+      , el "master" "slave" "replication"
+      , el "queue" "worker" "consume"
+      , el "worker" "master" "write"
       ]
   , dagreRankDir: TopBottom
   , dotSource: joinWith "\n"
@@ -199,6 +250,25 @@ blueprintDiagram =
           "Primary database instance handling all write operations."
       , mkInfo "slave" "DB Replica (reads)" "Read replica mirroring the master via replication."
       ]
+  , dagreStyles:
+      [ sEntry "dns" "Route 53"
+      , sCache "cdn" "CloudFront"
+      , sProcess "lb" "ALB"
+      , sProcess "web1" "stateless"
+      , sProcess "web2" "stateless"
+      , sProcess "web3" "auto-scaled"
+      , sAdvanced "queue" "Kafka"
+      , sAdvanced "worker" "Background Jobs"
+      , sCache "cache" "Redis"
+      , sDist "master" "writes"
+      , sDist "slave" "reads"
+      ]
+  , dagreClusters:
+      [ cluster "Edge" [ "dns", "cdn", "lb" ]
+      , cluster "Application Tier" [ "web1", "web2", "web3" ]
+      , cluster "Async" [ "queue", "worker" ]
+      , cluster "Data Tier" [ "cache", "master", "slave" ]
+      ]
   }
 
 cacheDiagram :: DiagramSpec
@@ -217,12 +287,12 @@ cacheDiagram =
       , mkNode "db" "Database"
       ]
   , dagreEdges:
-      [ e "browser" "cdn"
-      , e "cdn" "lb"
+      [ el "browser" "cdn" "miss"
+      , el "cdn" "lb" "miss"
       , e "lb" "web"
-      , e "web" "redis"
-      , e "redis" "db"
-      , e "web" "db"
+      , el "web" "redis" "lookup"
+      , el "redis" "db" "miss"
+      , ed "web" "db" "write-through"
       ]
   , dagreRankDir: LeftRight
   , dotSource: joinWith "\n"
@@ -264,6 +334,19 @@ cacheDiagram =
       , mkInfo "db" "Database (PostgreSQL)"
           "Source of truth. Only reached on cache misses. Uses internal buffer pool for disk pages."
       ]
+  , dagreStyles:
+      [ sEntry "browser" "Cache"
+      , sEntry "cdn" "Edge Cache"
+      , sProcess "lb" "Balancer"
+      , sProcess "web" "Server"
+      , sCache "redis" "Distributed Cache"
+      , sDist "db" "PostgreSQL"
+      ]
+  , dagreClusters:
+      [ cluster "Edge Layer" [ "browser", "cdn" ]
+      , cluster "Application" [ "lb", "web" ]
+      , cluster "Data" [ "redis", "db" ]
+      ]
   }
 
 cicdDiagram :: DiagramSpec
@@ -292,7 +375,7 @@ cicdDiagram =
       , e "staging" "e2e"
       , e "e2e" "prod"
       , e "prod" "monitor"
-      , e "prod" "build"
+      , ed "prod" "build" "rollback"
       ]
   , dagreRankDir: LeftRight
   , dotSource: joinWith "\n"
@@ -340,6 +423,22 @@ cicdDiagram =
       , mkInfo "monitor" "Monitor & Alert"
           "Post-deployment monitoring. Alerts trigger rollback if error rates spike."
       ]
+  , dagreStyles:
+      [ sEntry "dev" "Commit"
+      , sEntry "push" "Git Repo"
+      , sProcess "build" "Compile"
+      , sProcess "unittest" ""
+      , sProcess "integration" "Tests"
+      , sCache "staging" "Staging"
+      , sCache "e2e" ""
+      , sDist "prod" "Production"
+      , sAdvanced "monitor" "Alert"
+      ]
+  , dagreClusters:
+      [ cluster "Development" [ "dev", "push" ]
+      , cluster "CI Pipeline" [ "build", "unittest", "integration" ]
+      , cluster "CD Pipeline" [ "staging", "e2e", "prod", "monitor" ]
+      ]
   }
 
 youtubeDiagram :: DiagramSpec
@@ -365,7 +464,7 @@ youtubeDiagram =
       , e "transcode" "storage"
       , e "storage" "cdn"
       , e "cdn" "player"
-      , e "metadata" "player"
+      , ed "metadata" "player" "metadata"
       ]
   , dagreRankDir: LeftRight
   , dotSource: joinWith "\n"
@@ -411,6 +510,20 @@ youtubeDiagram =
       , mkInfo "player" "Video Player"
           "Web, mobile, or TV app player. Uses adaptive bitrate streaming (HLS/DASH) over CDN."
       ]
+  , dagreStyles:
+      [ sEntry "upload" "Upload"
+      , sProcess "processing" "& Validation"
+      , sProcess "transcode" "240p-4K"
+      , sCache "metadata" "Cassandra"
+      , sCache "storage" "S3 / GCS"
+      , sCache "cdn" "Edge Nodes"
+      , sDist "player" "Web / Mobile / TV"
+      ]
+  , dagreClusters:
+      [ cluster "Upload" [ "upload", "processing" ]
+      , cluster "Transcoding" [ "transcode" ]
+      , cluster "Storage & Delivery" [ "metadata", "storage", "cdn" ]
+      ]
   }
 
 kafkaDiagram :: DiagramSpec
@@ -428,10 +541,10 @@ kafkaDiagram =
       , mkNode "consumer" "Consumer"
       ]
   , dagreEdges:
-      [ e "producer" "disk"
-      , e "disk" "oscache"
-      , e "oscache" "socket"
-      , e "socket" "consumer"
+      [ el "producer" "disk" "1. write to log"
+      , el "disk" "oscache" "2. kernel read"
+      , el "oscache" "socket" "3. zero-copy transfer"
+      , el "socket" "consumer" "4. network delivery"
       ]
   , dagreRankDir: LeftRight
   , dotSource: joinWith "\n"
@@ -462,6 +575,14 @@ kafkaDiagram =
       , mkInfo "consumer" "Consumer (read())"
           "Kafka consumer reads messages from the socket. No data copy occurs in the broker's user space."
       ]
+  , dagreStyles:
+      [ sEntry "producer" "write()"
+      , sProcess "disk" "Kafka Log"
+      , sCache "oscache" "sendfile()"
+      , sDist "socket" "network"
+      , sAdvanced "consumer" "read()"
+      ]
+  , dagreClusters: []
   }
 
 oauthDiagram :: DiagramSpec
@@ -480,16 +601,16 @@ oauthDiagram =
       , mkNode "refresh" "Refresh Token"
       ]
   , dagreEdges:
-      [ e "user" "client"
-      , e "client" "auth"
-      , e "auth" "user"
-      , e "user" "auth"
-      , e "auth" "token"
-      , e "token" "client"
-      , e "client" "resource"
-      , e "resource" "client"
-      , e "client" "user"
-      , e "refresh" "auth"
+      [ el "user" "client" "1. Request"
+      , el "client" "auth" "2. Auth Request"
+      , el "auth" "user" "3. User Grants"
+      , el "user" "auth" "4. Consent"
+      , el "auth" "token" "5. Issue"
+      , el "token" "client" "6. Access Token"
+      , el "client" "resource" "7. API Call + Token"
+      , el "resource" "client" "8. API Response"
+      , el "client" "user" "9. Result"
+      , ed "refresh" "auth" "10. Refresh"
       ]
   , dagreRankDir: LeftRight
   , dotSource: joinWith "\n"
@@ -529,6 +650,15 @@ oauthDiagram =
       , mkInfo "refresh" "Refresh Token"
           "A long-lived credential used to obtain new access tokens without requiring user re-authentication."
       ]
+  , dagreStyles:
+      [ sEntry "user" "Owner (User)"
+      , sProcess "client" "App"
+      , sCache "auth" "Server"
+      , sDist "resource" "Server (API)"
+      , sAdvanced "token" "Token"
+      , sAdvanced "refresh" "Token"
+      ]
+  , dagreClusters: []
   }
 
 shardingDiagram :: DiagramSpec
@@ -546,10 +676,10 @@ shardingDiagram =
       , mkNode "shard3" "Shard 3"
       ]
   , dagreEdges:
-      [ e "app" "router"
-      , e "router" "shard1"
-      , e "router" "shard2"
-      , e "router" "shard3"
+      [ el "app" "router" "query"
+      , el "router" "shard1" "hash % 3 == 0"
+      , el "router" "shard2" "hash % 3 == 1"
+      , el "router" "shard3" "hash % 3 == 2"
       ]
   , dagreRankDir: TopBottom
   , dotSource: joinWith "\n"
@@ -580,6 +710,14 @@ shardingDiagram =
       , mkInfo "shard3" "Shard 3 (user_id: 2001-3000)"
           "Third database partition. Adding more shards allows linear write scaling."
       ]
+  , dagreStyles:
+      [ sEntry "app" ""
+      , sProcess "router" "hash(key) % N"
+      , sCache "shard1" "user_id: 1-1000"
+      , sCache "shard2" "user_id: 1001-2000"
+      , sCache "shard3" "user_id: 2001-3000"
+      ]
+  , dagreClusters: []
   }
 
 allDiagrams :: Array DiagramSpec

@@ -3,10 +3,15 @@ module Showcase.Main where
 import Prelude
 
 import Dagre.Graph as Dagre
+import Data.Array (null)
 import Data.Either (Either(..))
+import Data.Foldable (find, foldr)
+import Data.Int (toNumber)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.String (joinWith)
+import Data.String as String
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff, liftAff)
@@ -22,7 +27,8 @@ import Halogen.HTML.Properties as HP
 import Halogen.Hooks as Hooks
 import Halogen.VDom.Driver (runUI)
 import Showcase.Diagrams
-  ( DiagramSpec
+  ( DagreCluster
+  , DiagramSpec
   , categories
   , findDiagram
   , findNodeInfo
@@ -40,6 +46,7 @@ type State =
   { selectedDiagram :: String
   , renderMode :: RenderMode
   , selectedNode :: Maybe String
+  , sourceOpen :: Boolean
   , vizInstance :: Maybe VizInstance
   , positions :: Maybe (Map String Position)
   , dims :: Maybe { width :: Number, height :: Number }
@@ -50,6 +57,7 @@ initialState =
   { selectedDiagram: "scale"
   , renderMode: DagreMode
   , selectedNode: Nothing
+  , sourceOpen: false
   , vizInstance: Nothing
   , positions: Nothing
   , dims: Nothing
@@ -62,6 +70,11 @@ main = HA.runHalogenAff do
 
 clsWhen :: Boolean -> String -> String -> String
 clsWhen cond whenTrue whenFalse = if cond then whenTrue else whenFalse
+
+narrowEdges
+  :: Array { source :: String, target :: String, label :: String, dashed :: Boolean }
+  -> Array { source :: String, target :: String }
+narrowEdges = map (\e -> { source: e.source, target: e.target })
 
 toggleBtnBase :: String
 toggleBtnBase =
@@ -96,7 +109,8 @@ component = Hooks.component \_ _ -> Hooks.do
     case findDiagram "scale" of
       Nothing -> pure Nothing
       Just diag -> do
-        result <- liftEffect $ buildAndLayout diag.dagreNodes diag.dagreEdges diag.dagreRankDir
+        result <- liftEffect $ buildAndLayout diag.dagreNodes (narrowEdges diag.dagreEdges)
+          diag.dagreRankDir
         let vizResult = renderString viz diag.dotSource (Just { format: "svg", engine: Dot })
         case vizResult of
           Right svg -> liftEffect $ setInnerHTMLById "svg-container" (extractSvg svg)
@@ -105,6 +119,7 @@ component = Hooks.component \_ _ -> Hooks.do
           { selectedDiagram: "scale"
           , renderMode: DagreMode
           , selectedNode: Nothing
+          , sourceOpen: false
           , vizInstance: Just viz
           , positions: Just result.positions
           , dims: result.dims
@@ -117,7 +132,8 @@ component = Hooks.component \_ _ -> Hooks.do
       case findDiagram diagId of
         Nothing -> pure unit
         Just diag -> do
-          result <- liftEffect $ buildAndLayout diag.dagreNodes diag.dagreEdges diag.dagreRankDir
+          result <- liftEffect $ buildAndLayout diag.dagreNodes (narrowEdges diag.dagreEdges)
+            diag.dagreRankDir
           Hooks.modify_ stId \s2 -> s2
             { selectedDiagram = diagId
             , selectedNode = Nothing
@@ -146,6 +162,9 @@ component = Hooks.component \_ _ -> Hooks.do
     onSelectNode nodeId =
       if nodeId == "" then pure unit
       else Hooks.modify_ stId \s -> s { selectedNode = Just nodeId }
+
+    onToggleSource =
+      Hooks.modify_ stId \s -> s { sourceOpen = not s.sourceOpen }
 
   Hooks.pure $
     case findDiagram st.selectedDiagram of
@@ -190,7 +209,7 @@ component = Hooks.component \_ _ -> Hooks.do
               ]
           , HH.div [ HP.class_ (cn "flex h-[calc(100vh-3.5rem)]") ]
               [ renderSidebar st.selectedDiagram onSelectDiagram
-              , renderCanvas st diag onSelectNode
+              , renderCanvas st diag onSelectNode onToggleSource
               , renderDetailPanel st diag
               ]
           ]
@@ -252,8 +271,8 @@ showItemTitle dId = case dId of
   "sharding" -> "Database Sharding"
   _ -> dId
 
-renderCanvas :: forall w i. State -> DiagramSpec -> (String -> i) -> HH.HTML w i
-renderCanvas st diag onSelect =
+renderCanvas :: forall w i. State -> DiagramSpec -> (String -> i) -> i -> HH.HTML w i
+renderCanvas st diag onSelect onToggleSource =
   HH.div [ HP.class_ (cn "flex-1 flex flex-col overflow-hidden") ]
     [ HH.div [ HP.class_ (cn "px-6 py-3 bg-surface border-b border-line") ]
         [ HH.h2 [ HP.class_ (cn "text-base font-bold text-ink mb-0.5") ] [ HH.text diag.title ]
@@ -265,8 +284,20 @@ renderCanvas st diag onSelect =
         [ case st.renderMode of
             DagreMode -> case st.positions of
               Nothing -> HH.p_ [ HH.text "Computing layout..." ]
-              Just pm -> renderDagreSvg pm st.dims diag.dagreNodes diag.dagreEdges onSelect
-                st.selectedNode
+              Just pm ->
+                let
+                  styles = Map.fromFoldable
+                    ( map
+                        ( \s2 -> Tuple s2.id
+                            { fill: s2.fill, stroke: s2.stroke, subtitle: s2.subtitle }
+                        )
+                        diag.dagreStyles
+                    )
+                in
+                  renderDagreSvg pm st.dims diag.dagreNodes diag.dagreEdges styles
+                    diag.dagreClusters
+                    onSelect
+                    st.selectedNode
             VizMode -> HH.text ""
         , HH.div
             [ HP.id "svg-container"
@@ -280,7 +311,12 @@ renderCanvas st diag onSelect =
             ]
             []
         ]
+    , renderSourcePanel st.sourceOpen onToggleSource sourceText
     ]
+  where
+  sourceText = case st.renderMode of
+    DagreMode -> dagreToDot diag
+    VizMode -> diag.dotSource
 
 renderDetailPanel :: forall w i. State -> DiagramSpec -> HH.HTML w i
 renderDetailPanel st diag =
@@ -334,16 +370,95 @@ renderDetailPanel st diag =
       , HH.text label
       ]
 
+dagreToDot :: DiagramSpec -> String
+dagreToDot diag =
+  joinWith "\n" (header <> nodeLines <> [ "" ] <> clusterLines <> edgeLines <> [ "}" ])
+  where
+  header =
+    [ "// Generated from dagre data (dagreNodes + dagreEdges + dagreStyles)"
+    , "digraph " <> diag.id <> " {"
+    , "  rankdir=" <> Dagre.rankDirToString diag.dagreRankDir <> ";"
+    , "  node [shape=box, style=\"rounded,filled\", fontname=\"sans-serif\"];"
+    ]
+  nodeLines = map nodeLine diag.dagreNodes
+  nodeLine n =
+    case findStyle n.id of
+      Just s ->
+        let
+          lbl = if s.subtitle == "" then n.label else n.label <> "\\n" <> s.subtitle
+        in
+          "  " <> n.id <> " [label=\"" <> lbl <> "\", fillcolor=\"" <> s.fill <> "\"];"
+      Nothing -> "  " <> n.id <> " [label=\"" <> n.label <> "\"];"
+  clusterLines =
+    if null diag.dagreClusters then []
+    else map clusterLine diag.dagreClusters
+  clusterLine c =
+    "  subgraph cluster_" <> sanitize c.label <> " { label=\"" <> c.label
+      <> "\"; style=rounded; color=\"#e0e0e0\";\n"
+      <> "    "
+      <> joinWith "; " c.nodes
+      <> ";\n  }"
+  sanitize = String.replaceAll (String.Pattern " ") (String.Replacement "_")
+  edgeLines = map edgeLine diag.dagreEdges
+  edgeLine edge =
+    let
+      attrs =
+        (if edge.label == "" then [] else [ "label=\"" <> edge.label <> "\"" ])
+          <> (if edge.dashed then [ "style=dashed", "color=\"#ef5350\"" ] else [])
+    in
+      "  " <> edge.source <> " -> " <> edge.target <> attrsStr attrs <> ";"
+  attrsStr [] = ""
+  attrsStr as = " [" <> joinWith ", " as <> "]"
+  findStyle id' = find (\s -> s.id == id') diag.dagreStyles
+
+renderSourcePanel :: forall w i. Boolean -> i -> String -> HH.HTML w i
+renderSourcePanel isOpen onToggle dotSource =
+  HH.div
+    [ HP.class_
+        ( cn
+            ( "shrink-0 flex flex-col border-t border-line bg-surface transition-all duration-200 "
+                <> if isOpen then "h-56" else "h-10"
+            )
+        )
+    ]
+    [ HH.div
+        [ HP.class_
+            ( cn
+                "h-10 shrink-0 flex items-center justify-between px-6 cursor-pointer hover:bg-canvas-bg transition-colors"
+            )
+        , HE.onClick \_ -> onToggle
+        ]
+        [ HH.div [ HP.class_ (cn "flex items-center gap-2") ]
+            [ HH.span [ HP.class_ (cn "text-ink-secondary text-xs") ]
+                [ HH.text (if isOpen then "▼" else "▲") ]
+            , HH.span
+                [ HP.class_ (cn "text-ink-secondary text-xs font-semibold uppercase tracking-wider")
+                ]
+                [ HH.text "DOT Source" ]
+            ]
+        ]
+    , if isOpen then HH.pre
+        [ HP.class_
+            ( cn
+                "flex-1 overflow-auto m-0 p-4 bg-slate-900 font-mono text-xs leading-relaxed text-slate-300 whitespace-pre"
+            )
+        ]
+        [ HH.code_ [ HH.text dotSource ] ]
+      else HH.text ""
+    ]
+
 renderDagreSvg
   :: forall w i
    . Map String Position
   -> Maybe { width :: Number, height :: Number }
   -> Array Dagre.NodeOptions
-  -> Array { source :: String, target :: String }
+  -> Array { source :: String, target :: String, label :: String, dashed :: Boolean }
+  -> Map String { fill :: String, stroke :: String, subtitle :: String }
+  -> Array DagreCluster
   -> (String -> i)
   -> Maybe String
   -> HH.HTML w i
-renderDagreSvg pm mdims nodes edges onSelect selected =
+renderDagreSvg pm mdims nodes edges styles clusters onSelect selected =
   let
     w = show (fromMaybe 400.0 (_.width <$> mdims) + 80.0)
     h = show (fromMaybe 350.0 (_.height <$> mdims) + 80.0)
@@ -354,35 +469,41 @@ renderDagreSvg pm mdims nodes edges onSelect selected =
       , svgAttr "viewBox" ("0 0 " <> w <> " " <> h)
       ]
       [ arrowheadDefs
+      , svgEl "g" [] (map (renderCluster pm) clusters)
       , svgEl "g" []
-          (map (renderDagreEdge pm) edges <> map (renderDagreNode pm onSelect selected) nodes)
+          ( map (renderDagreEdge pm) edges <> map (renderDagreNode pm styles onSelect selected)
+              nodes
+          )
       ]
 
 renderDagreNode
   :: forall w i
    . Map String Position
+  -> Map String { fill :: String, stroke :: String, subtitle :: String }
   -> (String -> i)
   -> Maybe String
   -> Dagre.NodeOptions
   -> HH.HTML w i
-renderDagreNode pm onSelect selected node =
+renderDagreNode pm styles onSelect selected node =
   case Map.lookup node.id pm of
     Nothing -> HH.text ""
     Just { x, y } ->
       let
+        defaultStyle = { fill: "#e3f2fd", stroke: "#1976d2", subtitle: "" }
+        s' = fromMaybe defaultStyle (Map.lookup node.id styles)
         isSel = selected == Just node.id
-        fill = if isSel then "#fff3e0" else "#e3f2fd"
-        stroke = if isSel then "#e65100" else "#1976d2"
+        fill = if isSel then "#fff3e0" else s'.fill
+        stroke = if isSel then "#e65100" else s'.stroke
       in
         svgEl "g"
           [ svgAttr "cursor" "pointer"
           , HE.onClick \_ -> onSelect node.id
           ]
           [ svgEl "rect"
-              [ svgAttr "x" (show (x - 65.0))
-              , svgAttr "y" (show (y - 22.0))
-              , svgAttr "width" "130"
-              , svgAttr "height" "44"
+              [ svgAttr "x" (show (x - 80.0))
+              , svgAttr "y" (show (y - 29.0))
+              , svgAttr "width" "160"
+              , svgAttr "height" "58"
               , svgAttr "rx" "8"
               , svgAttr "fill" fill
               , svgAttr "stroke" stroke
@@ -391,31 +512,144 @@ renderDagreNode pm onSelect selected node =
               []
           , svgEl "text"
               [ svgAttr "x" (show x)
-              , svgAttr "y" (show (y + 5.0))
+              , svgAttr "y" (show (y - 4.0))
               , svgAttr "text-anchor" "middle"
               , svgAttr "font-family" "sans-serif"
               , svgAttr "font-size" "13"
+              , svgAttr "font-weight" "600"
               , svgAttr "fill" "#333"
               ]
               [ HH.text node.label ]
+          , svgEl "text"
+              [ svgAttr "x" (show x)
+              , svgAttr "y" (show (y + 14.0))
+              , svgAttr "text-anchor" "middle"
+              , svgAttr "font-family" "sans-serif"
+              , svgAttr "font-size" "10"
+              , svgAttr "fill" "#666"
+              ]
+              [ HH.text s'.subtitle ]
           ]
 
 renderDagreEdge
   :: forall w i
    . Map String Position
-  -> { source :: String, target :: String }
+  -> { source :: String, target :: String, label :: String, dashed :: Boolean }
   -> HH.HTML w i
-renderDagreEdge pm { source, target } =
+renderDagreEdge pm { source, target, label, dashed } =
   case Map.lookup source pm, Map.lookup target pm of
     Just s, Just t ->
-      svgEl "line"
-        [ svgAttr "x1" (show s.x)
-        , svgAttr "y1" (show s.y)
-        , svgAttr "x2" (show t.x)
-        , svgAttr "y2" (show t.y)
-        , svgAttr "stroke" "#999"
-        , svgAttr "stroke-width" "2"
-        , svgAttr "marker-end" "url(#arrowhead)"
-        ]
-        []
+      let
+        midX = (s.x + t.x) / 2.0
+        midY = (s.y + t.y) / 2.0
+        strokeColor = if dashed then "#ef5350" else "#666"
+        dashArray = if dashed then [ svgAttr "stroke-dasharray" "6,4" ] else []
+        labelLen = toNumber (String.length label)
+        labelEl =
+          if label == "" then []
+          else
+            [ svgEl "rect"
+                [ svgAttr "x" (show (midX - labelLen * 3.5))
+                , svgAttr "y" (show (midY - 8.0))
+                , svgAttr "width" (show (labelLen * 7.0 + 8.0))
+                , svgAttr "height" "16"
+                , svgAttr "rx" "4"
+                , svgAttr "fill" "white"
+                , svgAttr "stroke" strokeColor
+                , svgAttr "stroke-width" "1"
+                ]
+                []
+            , svgEl "text"
+                [ svgAttr "x" (show midX)
+                , svgAttr "y" (show (midY + 4.0))
+                , svgAttr "text-anchor" "middle"
+                , svgAttr "font-family" "sans-serif"
+                , svgAttr "font-size" "9"
+                , svgAttr "fill" (if dashed then "#ef5350" else "#666")
+                ]
+                [ HH.text label ]
+            ]
+      in
+        svgEl "g" []
+          ( [ svgEl "line"
+                ( [ svgAttr "x1" (show s.x)
+                  , svgAttr "y1" (show s.y)
+                  , svgAttr "x2" (show t.x)
+                  , svgAttr "y2" (show t.y)
+                  , svgAttr "stroke" strokeColor
+                  , svgAttr "stroke-width" "1.5"
+                  , svgAttr "marker-end" "url(#arrowhead)"
+                  ] <> dashArray
+                )
+                []
+            ] <> labelEl
+          )
     _, _ -> HH.text ""
+
+renderCluster :: forall w i. Map String Position -> DagreCluster -> HH.HTML w i
+renderCluster pm c =
+  case clusterBounds pm c.nodes of
+    Nothing -> HH.text ""
+    Just { minX, minY, maxX, maxY } ->
+      let
+        padX = 30.0
+        padY = 25.0
+        x = minX - padX
+        y = minY - padY
+        w = maxX - minX + padX * 2.0
+        h = maxY - minY + padY * 2.0
+      in
+        svgEl "g" []
+          [ svgEl "rect"
+              [ svgAttr "x" (show x)
+              , svgAttr "y" (show y)
+              , svgAttr "width" (show w)
+              , svgAttr "height" (show h)
+              , svgAttr "rx" "12"
+              , svgAttr "fill" "none"
+              , svgAttr "stroke" "#e0e0e0"
+              , svgAttr "stroke-width" "2"
+              , svgAttr "stroke-dasharray" "5,3"
+              ]
+              []
+          , svgEl "text"
+              [ svgAttr "x" (show (x + 12.0))
+              , svgAttr "y" (show (y + 18.0))
+              , svgAttr "font-family" "sans-serif"
+              , svgAttr "font-size" "11"
+              , svgAttr "font-weight" "600"
+              , svgAttr "fill" "#999"
+              ]
+              [ HH.text c.label ]
+          ]
+
+clusterBounds
+  :: Map String Position
+  -> Array String
+  -> Maybe { minX :: Number, minY :: Number, maxX :: Number, maxY :: Number }
+clusterBounds pm nodeIds =
+  let
+    halfW = 80.0
+    halfH = 29.0
+    positions = map
+      ( \id -> map
+          (\p -> { minX: p.x - halfW, minY: p.y - halfH, maxX: p.x + halfW, maxY: p.y + halfH })
+          (Map.lookup id pm)
+      )
+      nodeIds
+  in
+    foldr
+      ( \mp acc ->
+          case mp, acc of
+            Just b, Just acc' ->
+              Just
+                { minX: min b.minX acc'.minX
+                , minY: min b.minY acc'.minY
+                , maxX: max b.maxX acc'.maxX
+                , maxY: max b.maxY acc'.maxY
+                }
+            Just b, Nothing -> Just b
+            Nothing, acc' -> acc'
+      )
+      (Nothing :: Maybe { minX :: Number, minY :: Number, maxX :: Number, maxY :: Number })
+      positions
