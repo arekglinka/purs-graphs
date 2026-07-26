@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 #
-# Launch a Vite dev server with HMR for the chosen example.
+# Launch a Vite dev server with HMR + auto-rebuild on .purs save.
 # Usage: ./scripts/dev.sh [dagre-demo|viz-demo]   (default: dagre-demo)
 #
-# Requires: spago build to have produced output/ for the example's package.
-# The Vite config re-bundles on .purs save via purs-backend-es watch mode.
+# Runs two processes concurrently:
+#   1. watchexec — watches .purs files, runs `spago build` on change
+#      (spago's backend config auto-runs purs-backend-es → output-es/)
+#   2. vite — dev server with HMR, picks up output-es/ changes automatically
 #
 set -euo pipefail
 
@@ -23,8 +25,15 @@ EXAMPLE_DIR="$REPO_ROOT/examples/$EXAMPLE"
 
 log()  { printf '\033[1;34m[dev]\033[0m %s\n' "$*"; }
 
-log "Building PureScript for $EXAMPLE (first run cold; subsequent runs cached)..."
-(cd "$EXAMPLE_DIR" && spago build)
+log "Initial build..."
+(cd "$REPO_ROOT" && spago build)
 
-log "Starting Vite dev server with HMR on http://localhost:5173 ..."
-exec npx vite --config "$EXAMPLE_DIR/vite.config.ts" "$EXAMPLE_DIR"
+log "Starting watcher (spago) + dev server (vite) for $EXAMPLE..."
+log "  Vite:  http://localhost:$([ "$EXAMPLE" = "dagre-demo" ] && echo 5173 || echo 5174)"
+log "  Edit .purs files → auto-rebuild → HMR"
+
+exec concurrently \
+    -n "spago,vite" \
+    -c "blue,green" \
+    "watchexec -w $REPO_ROOT/packages -w $REPO_ROOT/examples -e purs -- sh -c 'cd $REPO_ROOT && spago build'" \
+    "vite --host 0.0.0.0 --config $EXAMPLE_DIR/vite.config.ts $EXAMPLE_DIR"

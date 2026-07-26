@@ -18,14 +18,28 @@ RUN curl -fsSL https://github.com/BurntSushi/ripgrep/releases/download/13.0.0/ri
     | tar xz --strip-components=1 -C /usr/local/bin/ --wildcards '*/rg' \
     && chmod +x /usr/local/bin/rg
 
+# watchexec: file watcher for auto-rebuilding PureScript on .purs save
+RUN curl -fsSL https://github.com/watchexec/watchexec/releases/download/v1.25.1/watchexec-1.25.1-x86_64-unknown-linux-musl.tar.xz \
+    | tar xJ --strip-components=1 -C /usr/local/bin/ --wildcards '*/watchexec' \
+    && chmod +x /usr/local/bin/watchexec
+
 # PureScript toolchain. Versions pinned for reproducible builds.
 # spago@next tracks the 0.93+ workspace YAML release line.
+# concurrently: run spago watcher + vite side-by-side in dev.sh
 RUN npm install -g \
         spago@next \
         purescript@0.15.15 \
         purs-tidy \
         purs-backend-es \
         vite@5 \
-        esbuild
+        esbuild \
+        concurrently
+
+# Shell aliases for common commands
+RUN echo 'alias sb="spago build"' >> /root/.bashrc \
+    && echo 'alias st="spago test -p purs-dagre && spago test -p purs-viz"' >> /root/.bashrc \
+    && echo 'alias pb="purs-backend-es build"' >> /root/.bashrc \
+    && echo 'alias dev="./scripts/dev.sh"' >> /root/.bashrc \
+    && echo 'alias fmt="purs-tidy format-in-place $(find . -name '\''*.purs'\'' -not -path '\''./output*'\'' -not -path '\''./.spago*'\'')"' >> /root/.bashrc
 
 WORKDIR /workspace

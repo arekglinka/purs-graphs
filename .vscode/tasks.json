@@ -1,0 +1,75 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "spago build",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "test (all)",
+      "type": "shell",
+      "command": "spago test -p purs-dagre && spago test -p purs-viz",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "test (purs-dagre)",
+      "type": "shell",
+      "command": "spago test -p purs-dagre",
+      "problemMatcher": []
+    },
+    {
+      "label": "test (purs-viz)",
+      "type": "shell",
+      "command": "spago test -p purs-viz",
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: dagre-demo",
+      "type": "shell",
+      "command": "./scripts/dev.sh dagre-demo",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "dev: viz-demo",
+      "type": "shell",
+      "command": "./scripts/dev.sh viz-demo",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "format",
+      "type": "shell",
+      "command": "purs-tidy format-in-place $(find . -name '*.purs' -not -path './output*' -not -path './.spago*')",
+      "problemMatcher": []
+    },
+    {
+      "label": "format-check",
+      "type": "shell",
+      "command": "purs-tidy check $(find . -name '*.purs' -not -path './output*' -not -path './.spago*')",
+      "problemMatcher": []
+    },
+    {
+      "label": "backend build",
+      "type": "shell",
+      "command": "purs-backend-es build",
+      "problemMatcher": []
+    },
+    {
+      "label": "vite build (dagre-demo)",
+      "type": "shell",
+      "command": "cd examples/dagre-demo && npx vite build",
+      "problemMatcher": []
+    },
+    {
+      "label": "vite build (viz-demo)",
+      "type": "shell",
+      "command": "cd examples/viz-demo && npx vite build",
+      "problemMatcher": []
+    }
+  ]
+}

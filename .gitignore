@@ -16,11 +16,13 @@ examples/*/output/
 
 # IDE / Editor
 .idea/
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 *.swp
 *.swo
 *~
 .cache/
+.psc-ide-port
 
 # OS
 .DS_Store

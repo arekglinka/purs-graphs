@@ -11,7 +11,10 @@
       "extensions": [
         "nwolverson.language-purescript",
         "nwolverson.ide-purescript",
-        "esbenp.prettier-vscode"
+        "esbenp.prettier-vscode",
+        "EditorConfig.EditorConfig",
+        "eamodio.gitlens",
+        "ms-azuretools.vscode-docker"
       ],
       "settings": {
         "editor.formatOnSave": true,
@@ -25,5 +28,6 @@
     }
   },
   "forwardPorts": [5173, 5174],
+  "postCreateCommand": "spago install && spago build",
   "remoteUser": "root"
 }

@@ -31,6 +31,9 @@ jobs:
       - name: Install workspace npm deps
         run: npm ci || npm install
 
+      - name: Check formatting (purs-tidy)
+        run: purs-tidy check $(find . -name '*.purs' -not -path './output*' -not -path './.spago*')
+
       - name: spago install (workspace)
         run: spago install
 
