@@ -6,6 +6,9 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true,
+    fs: {
+      allow: ["..", "../.."],
+    },
   },
   build: {
     outDir: "dist",
@@ -15,5 +18,8 @@ export default defineConfig({
     alias: {
       dagre: fileURLToPath(new URL("node_modules/dagre", import.meta.url)),
     },
+  },
+  optimizeDeps: {
+    include: ["dagre"],
   },
 });

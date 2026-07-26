@@ -6,6 +6,9 @@ export default defineConfig({
   server: {
     port: 5174,
     open: true,
+    fs: {
+      allow: ["..", "../.."],
+    },
   },
   build: {
     outDir: "dist",
@@ -15,5 +18,8 @@ export default defineConfig({
     alias: {
       "@viz-js/viz": fileURLToPath(new URL("node_modules/@viz-js/viz", import.meta.url)),
     },
+  },
+  optimizeDeps: {
+    include: ["@viz-js/viz"],
   },
 });
