@@ -3,12 +3,10 @@
 import dagre from "dagre";
 
 export function newGraph() {
-  return function () {
-    var g = new dagre.graphlib.Graph();
-    g.setGraph({});
-    g.setDefaultEdgeLabel(function () { return {}; });
-    return g;
-  };
+  var g = new dagre.graphlib.Graph();
+  g.setGraph({});
+  g.setDefaultEdgeLabel(function () { return {}; });
+  return g;
 }
 
 export function setRankDir(g) {
