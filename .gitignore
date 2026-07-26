@@ -1,0 +1,40 @@
+# PureScript build artifacts
+output/
+output-es/
+.purs-universe/
+.spago/
+spago.dhall
+packages.dhall
+
+# Node / npm
+node_modules/
+dist/
+
+# Example build output
+examples/*/dist/
+examples/*/output/
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Devcontainer tarball distribution artifacts
+*.tar
+*.tar.gz
+*.tar.sha256
+
+# Secrets
+.env
+.env.local
+*.log
+
+# Vite
+*.local

@@ -1,0 +1,15 @@
+package:
+  name: dagre-demo
+  dependencies:
+    - prelude
+    - effect
+    - maybe
+    - maps
+    - foldable-traversable
+    - tuples
+    - halogen
+    - halogen-hooks
+    - halogen-vdom
+    - web-dom
+    - web-html
+    - purs-dagre

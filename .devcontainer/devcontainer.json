@@ -1,0 +1,29 @@
+{
+  "name": "purs-graphs-dev",
+  "//image-comment": "Replace YOUR_GH_OWNER with your GitHub owner/org. Enterprise forks: set this to ghcr.io/<your-org>/purs-graphs-dev. The image: key is used for fast pull; the build: key enables explicit rebuilds from Dockerfile.",
+  "image": "ghcr.io/YOUR_GH_OWNER/purs-graphs-dev:latest",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "nwolverson.language-purescript",
+        "nwolverson.ide-purescript",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "[purescript]": {
+          "editor.defaultFormatter": "nwolverson.language-purescript"
+        },
+        "purescript.formatter": "purs-tidy",
+        "purescript.addSpagoSources": true,
+        "purescript.buildCommand": "spago build"
+      }
+    }
+  },
+  "forwardPorts": [5173, 5174],
+  "remoteUser": "root"
+}

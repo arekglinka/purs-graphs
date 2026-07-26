@@ -1,0 +1,18 @@
+package:
+  name: purs-viz
+  description: "PureScript FFI bindings to @viz-js/viz for Graphviz DOT rendering"
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - maybe
+    - nullable
+    - functions
+  build:
+    strict: false
+  test:
+    main: Test.Main
+    dependencies:
+      - spec
+      - either
+      - strings

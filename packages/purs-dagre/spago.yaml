@@ -1,0 +1,15 @@
+package:
+  name: purs-dagre
+  description: "PureScript FFI bindings to dagre for directed graph layout"
+  dependencies:
+    - prelude
+    - effect
+    - maybe
+    - nullable
+  build:
+    strict: false
+  test:
+    main: Test.Main
+    dependencies:
+      - spec
+      - arrays

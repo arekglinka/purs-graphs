@@ -1,0 +1,15 @@
+.git
+.gitignore
+node_modules/
+output/
+output-es/
+.spago/
+.purs-universe/
+dist/
+*.md
+LICENSE
+.podmanignore
+.vscode/
+.idea/
+*.tar
+*.tar.gz

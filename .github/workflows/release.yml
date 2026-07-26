@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bundle-bindings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install PureScript toolchain
+        run: npm install -g spago@next purescript@0.15.15 purs-backend-es esbuild
+
+      - name: Install deps + build workspace
+        run: |
+          npm ci || npm install
+          spago install
+          spago build
+
+      - name: Bundle purs-dagre FFI bindings
+        run: |
+          mkdir -p dist
+          esbuild packages/purs-dagre/src/Dagre.js \
+            --bundle --platform=browser --format=esm \
+            --external:dagre \
+            --outfile=dist/purs-dagre-bindings.js
+
+      - name: Bundle purs-viz FFI bindings
+        run: |
+          esbuild packages/purs-viz/src/Viz.js \
+            --bundle --platform=browser --format=esm \
+            --external:@viz-js/viz \
+            --outfile=dist/purs-viz-bindings.js
+
+      - name: Create GitHub Release with binding bundles
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/purs-dagre-bindings.js
+            dist/purs-viz-bindings.js
+          generate_release_notes: true

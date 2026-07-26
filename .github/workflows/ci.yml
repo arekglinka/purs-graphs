@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install PureScript toolchain
+        run: |
+          npm install -g spago@next purescript@0.15.15 purs-backend-es purs-tidy
+          spago --version
+          purs --version
+
+      - name: Install workspace npm deps
+        run: npm ci || npm install
+
+      - name: spago install (workspace)
+        run: spago install
+
+      - name: spago build (workspace — all packages + examples)
+        run: spago build
+
+      - name: Test purs-dagre
+        run: spago test --config packages/purs-dagre/spago.yaml
+
+      - name: Test purs-viz
+        run: spago test --config packages/purs-viz/spago.yaml
+
+      - name: Build dagre-demo example
+        run: |
+          cd examples/dagre-demo
+          spago build
+          npx vite build
+
+      - name: Build viz-demo example
+        run: |
+          cd examples/viz-demo
+          spago build
+          npx vite build

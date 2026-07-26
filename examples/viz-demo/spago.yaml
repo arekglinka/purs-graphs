@@ -1,0 +1,15 @@
+package:
+  name: viz-demo
+  dependencies:
+    - prelude
+    - effect
+    - aff
+    - either
+    - maybe
+    - strings
+    - halogen
+    - halogen-hooks
+    - halogen-vdom
+    - web-dom
+    - web-html
+    - purs-viz
