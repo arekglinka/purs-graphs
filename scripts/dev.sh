@@ -27,4 +27,4 @@ log "Building PureScript for $EXAMPLE (first run cold; subsequent runs cached)..
 (cd "$EXAMPLE_DIR" && spago build)
 
 log "Starting Vite dev server with HMR on http://localhost:5173 ..."
-exec npx vite --config "$EXAMPLE_DIR/vite.config.ts" --root "$EXAMPLE_DIR"
+exec npx vite --config "$EXAMPLE_DIR/vite.config.ts" "$EXAMPLE_DIR"
