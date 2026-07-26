@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #1976d2;
+  --color-brand-dark: #1565c0;
+  --color-chip-node-bg: #e3f2fd;
+  --color-chip-node-text: #1565c0;
+  --color-chip-node-border: #90caf9;
+  --color-chip-edge-bg: #f3e5f5;
+  --color-chip-edge-text: #7b1fa2;
+  --color-chip-edge-border: #ce93d8;
+}
+
+@layer base {
+  body {
+    @apply m-0 p-8 font-sans text-gray-800 bg-gray-50;
+  }
+}
+
+/* The canvas wrapper holds the SVG produced via Halogen HTML DSL. */
+.canvas-area svg {
+  max-width: 100%;
+  height: auto;
+}

@@ -4,6 +4,7 @@ package:
     - prelude
     - arrays
     - effect
+    - example-shared
     - maybe
     - ordered-collections
     - foldable-traversable

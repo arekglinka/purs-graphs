@@ -1,0 +1,13 @@
+package:
+  name: example-shared
+  description: "Shared helpers (SVG primitives, FFI, dagre layout runners) used by example apps"
+  dependencies:
+    - prelude
+    - maybe
+    - foldable-traversable
+    - ordered-collections
+    - tuples
+    - effect
+    - halogen
+    - strings
+    - purs-dagre

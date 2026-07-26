@@ -22,6 +22,7 @@ module Dagre
   ) where
 
 import Prelude
+
 import Data.Nullable (Nullable)
 import Effect (Effect)
 

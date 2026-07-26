@@ -57,3 +57,9 @@ jobs:
           cd examples/viz-demo
           spago build
           npx vite build
+
+      - name: Build showcase example
+        run: |
+          cd examples/showcase
+          spago build
+          npx vite build

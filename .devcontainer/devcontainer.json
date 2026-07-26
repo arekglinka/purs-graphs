@@ -27,7 +27,7 @@
       }
     }
   },
-  "forwardPorts": [5173, 5174],
+  "forwardPorts": [5173, 5174, 5175],
   "postCreateCommand": "spago install && spago build",
   "remoteUser": "root"
 }

@@ -42,6 +42,13 @@
       "problemMatcher": []
     },
     {
+      "label": "dev: showcase",
+      "type": "shell",
+      "command": "./scripts/dev.sh showcase",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
       "label": "format",
       "type": "shell",
       "command": "purs-tidy format-in-place $(find . -name '*.purs' -not -path './output*' -not -path './.spago*')",
@@ -69,6 +76,12 @@
       "label": "vite build (viz-demo)",
       "type": "shell",
       "command": "cd examples/viz-demo && npx vite build",
+      "problemMatcher": []
+    },
+    {
+      "label": "vite build (showcase)",
+      "type": "shell",
+      "command": "cd examples/showcase && npx vite build",
       "problemMatcher": []
     }
   ]

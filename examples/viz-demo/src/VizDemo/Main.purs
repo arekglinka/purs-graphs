@@ -8,11 +8,13 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
-import Data.String (Pattern(..), indexOf, drop, joinWith)
+import Data.String (joinWith)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff, liftAff)
 import Effect.Class (liftEffect)
+import Example.Svg (cn)
+import Example.Viz (extractSvg, setInnerHTMLById)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML as HH
@@ -23,18 +25,6 @@ import Halogen.VDom.Driver (runUI)
 import Viz (VizInstance, new)
 import Viz.Render (Engine(..), engineToString, renderString)
 
--- | Inject raw HTML into a DOM element by ID (used for SVG from viz.js).
-foreign import setInnerHTMLById :: String -> String -> Effect Unit
-
--- | Extract just the <svg>...</svg> element from viz.js output (strips XML
--- | declaration, DOCTYPE, and comments).
-extractSvg :: String -> String
-extractSvg s =
-  case indexOf (Pattern "<svg") s of
-    Just i -> drop i s
-    Nothing -> s
-
--- | The initial DOT source shown in the editor.
 initialDot :: String
 initialDot =
   "digraph pipeline {\n"
@@ -64,7 +54,6 @@ component = Hooks.component \_ _ -> Hooks.do
     , vizInstance: Nothing
     }
 
-  -- Create viz instance once, then do initial render
   Hooks.useLifecycleEffect do
     viz <- liftAff new
     let result = renderString viz initialDot (Just { format: "svg", engine: Dot })
@@ -77,7 +66,8 @@ component = Hooks.component \_ _ -> Hooks.do
   let
     doRender viz dot engine = do
       let result = renderString viz dot (Just { format: "svg", engine })
-      Hooks.put stId { dot, engine, svgOutput: Just result, vizInstance: Just viz }
+      Hooks.modify_ stId \s -> s
+        { dot = dot, engine = engine, svgOutput = Just result, vizInstance = Just viz }
       case result of
         Right svg -> liftEffect $ setInnerHTMLById "svg-container" (extractSvg svg)
         Left _ -> pure unit
@@ -90,12 +80,13 @@ component = Hooks.component \_ _ -> Hooks.do
 
     onEngineChange v = do
       s <- Hooks.get stId
-      let engine = case v of
-            "neato" -> Neato
-            "fdp" -> Fdp
-            "circo" -> Circo
-            "twopi" -> Twopi
-            _ -> Dot
+      let
+        engine = case v of
+          "neato" -> Neato
+          "fdp" -> Fdp
+          "circo" -> Circo
+          "twopi" -> Twopi
+          _ -> Dot
       case s.vizInstance of
         Just viz -> doRender viz s.dot engine
         Nothing -> pure unit
@@ -104,28 +95,42 @@ component = Hooks.component \_ _ -> Hooks.do
       Hooks.modify_ stId \s -> s { dot = v }
 
   Hooks.pure $
-    HH.div [ HP.class_ (HH.ClassName "app") ]
-      [ HH.div [ HP.class_ (HH.ClassName "header") ]
-          [ HH.h1_ [ HH.text "viz-demo" ]
-          , HH.p_ [ HH.text "Edit DOT source, switch engines, re-render live." ]
+    HH.div_
+      [ HH.div [ HP.class_ (cn "mb-6") ]
+          [ HH.h1 [ HP.class_ (cn "text-2xl font-bold text-brand m-0") ] [ HH.text "viz-demo" ]
+          , HH.p [ HP.class_ (cn "text-sm text-gray-600 m-0 mt-1") ]
+              [ HH.text "Edit DOT source, switch engines, re-render live." ]
           ]
-      , HH.div [ HP.class_ (HH.ClassName "layout") ]
-          [ HH.div [ HP.class_ (HH.ClassName "controls") ]
-              [ HH.div [ HP.class_ (HH.ClassName "control-group") ]
-                  [ HH.label_ [ HH.text "DOT Source" ]
+      , HH.div [ HP.class_ (cn "flex gap-6 items-start flex-wrap") ]
+          [ HH.div [ HP.class_ (cn "w-[400px] flex flex-col gap-4") ]
+              [ HH.div [ HP.class_ (cn "flex flex-col gap-1.5") ]
+                  [ HH.label
+                      [ HP.class_ (cn "text-xs font-semibold uppercase tracking-wide text-gray-600")
+                      ]
+                      [ HH.text "DOT Source" ]
                   , HH.textarea
                       [ HP.value st.dot
                       , HE.onValueInput onDotChange
-                      , HP.class_ (HH.ClassName "dot-editor")
+                      , HP.class_
+                          ( cn
+                              "w-full min-h-[160px] p-2 font-mono text-sm leading-relaxed resize-y tab-2 bg-gray-100 border border-gray-300 rounded focus:outline-none focus:border-brand focus:bg-white"
+                          )
                       , HP.rows 8
                       , HP.spellcheck false
                       ]
                   ]
-              , HH.div [ HP.class_ (HH.ClassName "control-group") ]
-                  [ HH.label_ [ HH.text "Layout Engine" ]
+              , HH.div [ HP.class_ (cn "flex flex-col gap-1.5") ]
+                  [ HH.label
+                      [ HP.class_ (cn "text-xs font-semibold uppercase tracking-wide text-gray-600")
+                      ]
+                      [ HH.text "Layout Engine" ]
                   , HH.select
                       [ HE.onValueChange onEngineChange
                       , HP.value (engineToString st.engine)
+                      , HP.class_
+                          ( cn
+                              "px-2 py-1.5 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-brand"
+                          )
                       ]
                       [ HH.option [ HP.value "dot" ] [ HH.text "dot (hierarchical)" ]
                       , HH.option [ HP.value "neato" ] [ HH.text "neato (spring)" ]
@@ -135,17 +140,33 @@ component = Hooks.component \_ _ -> Hooks.do
                       ]
                   , HH.button
                       [ HE.onClick \_ -> onRender
-                      , HP.class_ (HH.ClassName "btn")
+                      , HP.class_
+                          ( cn
+                              "px-3 py-1.5 bg-brand text-white border-0 rounded cursor-pointer text-sm whitespace-nowrap hover:bg-brand-dark"
+                          )
                       ]
                       [ HH.text "Render" ]
                   ]
               ]
-          , HH.div [ HP.class_ (HH.ClassName "canvas") ]
-              [ HH.h3_ [ HH.text "Rendered SVG" ]
-              , HH.div [ HP.id "svg-container", HP.class_ (HH.ClassName "svg-container") ] []
+          , HH.div [ HP.class_ (cn "flex-1 min-w-[300px]") ]
+              [ HH.h3 [ HP.class_ (cn "text-base font-medium text-gray-700 m-0 mb-2") ]
+                  [ HH.text "Rendered SVG" ]
+              , HH.div
+                  [ HP.id "svg-container"
+                  , HP.class_
+                      ( cn
+                          "border border-gray-300 rounded p-4 overflow-x-auto bg-white min-h-[200px]"
+                      )
+                  ]
+                  []
               , case st.svgOutput of
                   Just (Left errs) ->
-                    HH.pre [ HP.class_ (HH.ClassName "error-box") ]
+                    HH.pre
+                      [ HP.class_
+                          ( cn
+                              "mt-2 p-3 bg-red-50 text-red-800 border border-red-200 rounded font-mono text-sm whitespace-pre-wrap"
+                          )
+                      ]
                       [ HH.code_ [ HH.text (joinWith "\n" errs) ] ]
                   _ -> HH.text ""
               ]

@@ -54,5 +54,6 @@ new = makeAff \k -> do
 
 -- | Low-level synchronous render. Returns the raw result object from viz.js.
 -- | For an idiomatic `Either`-returning API, use `Viz.Render.renderString`.
-renderRaw :: VizInstance -> { input :: String, format :: String, engine :: String } -> RenderResultRaw
+renderRaw
+  :: VizInstance -> { input :: String, format :: String, engine :: String } -> RenderResultRaw
 renderRaw viz opts = runFn4 _render viz opts.input opts.format opts.engine

@@ -1,0 +1,22 @@
+package:
+  name: showcase
+  dependencies:
+    - prelude
+    - arrays
+    - effect
+    - example-shared
+    - aff
+    - either
+    - maybe
+    - strings
+    - ordered-collections
+    - foldable-traversable
+    - tuples
+    - halogen
+    - halogen-hooks
+    - halogen-vdom
+    - web-dom
+    - web-html
+    - web-events
+    - purs-dagre
+    - purs-viz

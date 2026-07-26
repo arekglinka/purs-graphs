@@ -16,7 +16,7 @@ module Viz.Render
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Maybe (Maybe(..), fromMaybe')
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Nullable (toMaybe)
 import Viz (RenderResultRaw, VizInstance, renderRaw)
 
@@ -55,7 +55,7 @@ renderString :: VizInstance -> String -> Maybe RenderOptions -> Either (Array Re
 renderString viz input opts =
   toEither result
   where
-  o = fromMaybe' (\_ -> defaultRenderOptions) opts
+  o = fromMaybe defaultRenderOptions opts
   result = renderRaw viz { input, format: o.format, engine: engineToString o.engine }
 
 -- | Render DOT source to a JSON string (Graphviz JSON output format).
@@ -64,7 +64,7 @@ renderJSON :: VizInstance -> String -> Maybe Engine -> Either (Array RenderError
 renderJSON viz input engine =
   toEither result
   where
-  e = fromMaybe' (\_ -> Dot) engine
+  e = fromMaybe Dot engine
   result = renderRaw viz { input, format: "json", engine: engineToString e }
 
 -- | Convenience: render DOT directly to SVG with just an engine selection.
@@ -72,14 +72,12 @@ renderSVG :: VizInstance -> String -> Maybe Engine -> Either (Array RenderError)
 renderSVG viz input engine =
   toEither result
   where
-  e = fromMaybe' (\_ -> Dot) engine
+  e = fromMaybe Dot engine
   result = renderRaw viz { input, format: "svg", engine: engineToString e }
 
--- Internal: map the raw viz.js result to Either.
 toEither :: RenderResultRaw -> Either (Array RenderError) String
 toEither result =
-  if result.status == "success"
-    then case toMaybe result.output of
-      Just output -> Right output
-      Nothing -> Left [ "render succeeded but produced no output" ]
-    else Left (map _.message result.errors)
+  if result.status == "success" then case toMaybe result.output of
+    Just output -> Right output
+    Nothing -> Left [ "render succeeded but produced no output" ]
+  else Left (map _.message result.errors)

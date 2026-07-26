@@ -4,22 +4,32 @@
   "description": "PureScript FFI bindings for graph visualization (dagre + viz.js) with Halogen examples",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^9.0.0",
-    "purescript": "0.15.15",
-    "purs-backend-es": "^1.4.3",
-    "purs-tidy": "^0.10.0",
-    "spago": "^0.93.0",
-    "vite": "^5.4.0",
-    "esbuild": "^0.23.0",
-    "typescript": "^5.5.0",
+    "@biomejs/biome": "^1.9.0",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^20.14.0",
-    "@biomejs/biome": "^1.9.0"
+    "benchmark": "^2.1.4",
+    "concurrently": "^9.0.0",
+    "esbuild": "^0.23.0",
+    "purescript": "0.15.16",
+    "purs-backend-es": "^1.4.3",
+    "purs-tidy": "^0.11.0",
+    "spago": "^1.0.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
   },
   "scripts": {
     "build": "spago build",
-    "test": "spago test --config packages/purs-dagre/spago.yaml && spago test --config packages/purs-viz/spago.yaml",
-    "build:examples": "cd examples/dagre-demo && spago build && npx vite build && cd ../viz-demo && spago build && npx vite build",
-    "format": "purs-tidy format-in-place src test packages examples && biome check --write .",
-    "check": "purs-tidy check src test packages examples"
+    "test": "spago test -p purs-dagre && spago test -p purs-viz",
+    "test:examples": "spago test -p dagre-demo && spago test -p viz-demo && spago test -p showcase",
+    "build:examples": "cd examples/dagre-demo && spago build && purs-backend-es build --corefn-dir ../../output --output-dir ../../output-es && npx vite build && cd ../viz-demo && spago build && purs-backend-es build --corefn-dir ../../output --output-dir ../../output-es && npx vite build && cd ../showcase && spago build && purs-backend-es build --corefn-dir ../../output --output-dir ../../output-es && npx vite build",
+    "format": "purs-tidy format-in-place packages examples && biome check --write .",
+    "format:check": "purs-tidy check packages examples && biome check .",
+    "docs": "purs docs --format html --output ./generated-docs 'packages/*/src/**/*.purs' '.spago/*/*/src/**/*.purs'",
+    "docs:markdown": "purs docs --format markdown --output ./generated-docs/md 'packages/*/src/**/*.purs'"
+  },
+  "dependencies": {
+    "@viz-js/viz": "^3.28.0",
+    "dagre": "^0.8.5",
+    "tailwindcss": "^4.3.3"
   }
 }

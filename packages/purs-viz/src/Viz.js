@@ -6,16 +6,16 @@ import { instance as vizInstance } from "@viz-js/viz";
 // onFailure with an error message string. Curried to match the PureScript
 // foreign import signature (two function args, returning an Effect thunk).
 export function _startInstance(onSuccess) {
-  return function (onFailure) {
-    return function () {
-      vizInstance().then(
-        function (viz) { onSuccess(viz)(); },
-        function (err) {
-          var msg = err == null ? "viz.js instance creation failed" : (err.message || String(err));
-          onFailure(msg)();
-        }
-      );
-    };
+  return (onFailure) => () => {
+    vizInstance().then(
+      (viz) => {
+        onSuccess(viz)();
+      },
+      (err) => {
+        const msg = err == null ? "viz.js instance creation failed" : err.message || String(err);
+        onFailure(msg)();
+      }
+    );
   };
 }
 
@@ -29,7 +29,7 @@ export function _render(viz, input, format, engine) {
     return {
       status: "failure",
       output: null,
-      errors: [{ level: "error", message: String((e && e.message) || e) }]
+      errors: [{ level: "error", message: String(e?.message || e) }],
     };
   }
 }

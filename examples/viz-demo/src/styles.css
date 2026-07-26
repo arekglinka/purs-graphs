@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #2e7d32;
+  --color-brand-dark: #1b5e20;
+  --font-mono: "SF Mono", "Fira Code", ui-monospace, monospace;
+}
+
+@layer base {
+  body {
+    @apply m-0 p-8 font-sans text-gray-800 bg-gray-50;
+  }
+}
+
+/* FFI contract: viz.js injects an SVG string via innerHTML on #svg-container.
+   PureScript can't add classes to that injected element, so we constrain it
+   here. All other styling in this app uses Tailwind utility classes. */
+#svg-container svg {
+  max-width: 100%;
+  height: auto;
+}

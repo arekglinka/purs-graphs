@@ -18,7 +18,11 @@
       "output/",
       "output-es/",
       "dist/",
-      "node_modules/"
+      "node_modules/",
+      ".spago/",
+      "generated-docs/",
+      "*.tar.gz",
+      "*.tar.xz"
     ]
   }
 }

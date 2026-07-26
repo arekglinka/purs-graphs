@@ -12,4 +12,5 @@ package:
     - halogen-vdom
     - web-dom
     - web-html
+    - example-shared
     - purs-viz

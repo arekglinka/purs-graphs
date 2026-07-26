@@ -1,3 +1,4 @@
+import "./styles.css";
 import { main } from "../../../output-es/DagreDemo.Main/index.js";
 
 if (import.meta.hot) {

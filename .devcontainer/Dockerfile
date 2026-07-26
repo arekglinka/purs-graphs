@@ -1,8 +1,9 @@
-FROM public.ecr.aws/lambda/nodejs:20
+FROM public.ecr.aws/lambda/nodejs:22
 
 # Amazon Linux 2023 base managed by AWS — matches the documented handoff pattern
 # for rootful Podman + WSL2 devcontainers. The CMD (not ENTRYPOINT) base means
 # we can run commands without --entrypoint overrides in normal use.
+# Node 22 is required for spago 1.x (uses node:sqlite, unflagged in 22.13+).
 RUN dnf install -y \
         git which findutils \
         gcc-c++ make python3 \
@@ -19,16 +20,16 @@ RUN curl -fsSL https://github.com/BurntSushi/ripgrep/releases/download/13.0.0/ri
     && chmod +x /usr/local/bin/rg
 
 # watchexec: file watcher for auto-rebuilding PureScript on .purs save
-RUN curl -fsSL https://github.com/watchexec/watchexec/releases/download/v1.25.1/watchexec-1.25.1-x86_64-unknown-linux-musl.tar.xz \
+RUN curl -fsSL https://github.com/watchexec/watchexec/releases/download/v2.1.2/watchexec-2.1.2-x86_64-unknown-linux-musl.tar.xz \
     | tar xJ --strip-components=1 -C /usr/local/bin/ --wildcards '*/watchexec' \
     && chmod +x /usr/local/bin/watchexec
 
 # PureScript toolchain. Versions pinned for reproducible builds.
-# spago@next tracks the 0.93+ workspace YAML release line.
+# spago 1.x requires Node 22.5+ (node:sqlite builtin).
 # concurrently: run spago watcher + vite side-by-side in dev.sh
 RUN npm install -g \
-        spago@next \
-        purescript@0.15.15 \
+        spago@latest \
+        purescript@0.15.16 \
         purs-tidy \
         purs-backend-es \
         vite@5 \
