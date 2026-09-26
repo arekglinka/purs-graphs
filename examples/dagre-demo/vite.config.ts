@@ -18,7 +18,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      dagre: fileURLToPath(new URL("node_modules/dagre", import.meta.url)),
+      dagre: fileURLToPath(new URL("../../node_modules/dagre", import.meta.url)),
     },
   },
   optimizeDeps: {

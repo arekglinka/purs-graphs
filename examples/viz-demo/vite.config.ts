@@ -18,7 +18,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@viz-js/viz": fileURLToPath(new URL("node_modules/@viz-js/viz", import.meta.url)),
+      "@viz-js/viz": fileURLToPath(new URL("../../node_modules/@viz-js/viz", import.meta.url)),
     },
   },
   optimizeDeps: {
