@@ -1,0 +1,9 @@
+.vscode/**
+src/**
+webview-src/**
+node_modules/**
+esbuild.mjs
+tsconfig.json
+package-lock.json
+**/*.map
+.gitignore

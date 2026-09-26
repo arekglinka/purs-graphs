@@ -60,3 +60,43 @@ jobs:
         run: |
           cd examples/showcase
           npm run build
+
+  build-extension:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install PureScript toolchain
+        run: |
+          npm install -g spago@latest purescript@0.15.16 purs-backend-es purs-tidy
+
+      - name: Build workspace
+        run: |
+          npm ci || npm install
+          spago install
+          spago build
+          purs-backend-es build --corefn-dir output --output-dir output-es
+
+      - name: Typecheck + build extension bundles
+        run: |
+          cd extensions/purs-graphs
+          npm install --no-audit --no-fund
+          npx tsc --noEmit
+          node esbuild.mjs
+
+      - name: Package VSIX
+        run: |
+          cd extensions/purs-graphs
+          npx @vscode/vsce package --no-dependencies -o purs-graphs.vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: purs-graphs-vsix
+          path: extensions/purs-graphs/purs-graphs.vsix

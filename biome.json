@@ -21,6 +21,8 @@
       "node_modules/",
       ".spago/",
       "generated-docs/",
+      ".vscode/",
+      "media/",
       "*.tar.gz",
       "*.tar.xz"
     ]

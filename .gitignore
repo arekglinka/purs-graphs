@@ -14,6 +14,12 @@ dist/
 examples/*/dist/
 examples/*/output/
 
+# VSCode extension build output
+extensions/purs-graphs/dist/
+extensions/purs-graphs/media/
+extensions/purs-graphs/node_modules/
+extensions/purs-graphs/*.vsix
+
 # IDE / Editor
 .idea/
 .vscode/*

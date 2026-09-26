@@ -22,8 +22,9 @@
     "test": "spago test -p purs-dagre && spago test -p purs-viz",
     "test:examples": "spago test -p dagre-demo && spago test -p viz-demo && spago test -p showcase",
     "build:examples": "cd examples/dagre-demo && spago build && purs-backend-es build --corefn-dir ../../output --output-dir ../../output-es && npx vite build && cd ../viz-demo && spago build && purs-backend-es build --corefn-dir ../../output --output-dir ../../output-es && npx vite build && cd ../showcase && spago build && purs-backend-es build --corefn-dir ../../output --output-dir ../../output-es && npx vite build",
-    "format": "purs-tidy format-in-place packages examples && biome check --write .",
-    "format:check": "purs-tidy check packages examples && biome check .",
+    "build:ext": "cd extensions/purs-graphs && npm install --no-audit --no-fund && npm run compile",
+    "format": "purs-tidy format-in-place packages examples extensions/purs-graphs/webview-src && biome check --write .",
+    "format:check": "purs-tidy check packages examples extensions/purs-graphs/webview-src && biome check .",
     "docs": "purs docs --format html --output ./generated-docs 'packages/*/src/**/*.purs' '.spago/*/*/src/**/*.purs'",
     "docs:markdown": "purs docs --format markdown --output ./generated-docs/md 'packages/*/src/**/*.purs'"
   },

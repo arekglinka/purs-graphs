@@ -1,0 +1,15 @@
+package:
+  name: purs-graphs-webview
+  dependencies:
+    - aff
+    - argonaut
+    - arrays
+    - either
+    - effect
+    - example-shared
+    - maybe
+    - ordered-collections
+    - prelude
+    - purs-dagre
+    - purs-viz
+    - strings
