@@ -49,17 +49,14 @@ jobs:
       - name: Build dagre-demo example
         run: |
           cd examples/dagre-demo
-          spago build
-          npx vite build
+          npm run build
 
       - name: Build viz-demo example
         run: |
           cd examples/viz-demo
-          spago build
-          npx vite build
+          npm run build
 
       - name: Build showcase example
         run: |
           cd examples/showcase
-          spago build
-          npx vite build
+          npm run build
