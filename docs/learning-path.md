@@ -98,20 +98,23 @@ Understand how `makeAff` bridges the WASM Promise to `Aff`.
 
 ## Week 7: DevContainer + CI Workflow
 
-**Goal**: Understand the prebuilt image workflow and enterprise-forkable CI.
+**Goal**: Understand the single-file devcontainer and enterprise-forkable CI.
 
-- Read: `.devcontainer/Dockerfile`, `.devcontainer/devcontainer.json`
+- Read: `.devcontainer/devcontainer.json`
 - Key concepts:
-  - `image:` (fast pull) vs `build:` (explicit rebuild) in devcontainer.json
-  - `podman run --entrypoint '[]'` — clears Lambda base ENTRYPOINT
-  - Three CI workflows: `ci.yml` (PR checks), `release.yml` (binding bundles),
-    `devcontainer.yml` (image publishing)
-  - Three-tag publishing: sha (immutable), latest (mutable), dev-YYYYMMDD
+  - `image:` + `features:` (git via devcontainers feature) — no Dockerfile
+  - `postCreateCommand: npm ci` — toolchain pinned by `package-lock.json`,
+    not baked into an image
+  - `purescript.addNpmPath` — IDE-PureScript resolves `purs` from
+    `node_modules/.bin`
+  - Two CI workflows: `ci.yml` (PR checks + VSIX artifact), `release.yml`
+    (binding bundles on `v*` tags)
   - Path generic-ness: `${{ github.repository_owner }}` everywhere
-- Exercise: fork the repo, change `YOUR_GH_OWNER`, rebuild the image
+- Exercise: fork the repo, change `YOUR_GH_OWNER` in `.github/CODEOWNERS`,
+  and verify the devcontainer opens on `node:22-slim`
 
-**In this repo**: read `scripts/build-devcontainer.sh` and trace the CI flow
-in `.github/workflows/devcontainer.yml`.
+**In this repo**: trace the CI flow in `.github/workflows/ci.yml` and compare
+it with the devcontainer `postCreateCommand`.
 
 ## Week 8: Contribution Workflow
 

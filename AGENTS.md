@@ -21,7 +21,7 @@ published — they exist for documentation and live development.
 - purescript-spec + spec-node + purescript-quickcheck (tests)
 - purs-tidy (PureScript formatter, `.tidyrc.json`)
 - biome (JS/TS/JSON formatter)
-- Amazon Linux 2023 + Node 22 (devcontainer base image)
+- `node:22-slim` devcontainer (single `devcontainer.json`; toolchain via `npm ci`)
 
 ## Build Commands
 
@@ -37,11 +37,13 @@ published — they exist for documentation and live development.
 | `spago build -p <pkg>` | Build a single package |
 | `spago test -p <pkg>` | Test a single package |
 | `./scripts/dev.sh <example>` | Run dev server for `dagre-demo`/`viz-demo`/`showcase` |
+| `npm run build:ext` | Install + compile the VSCode extension (PureScript → esbuild bundles → VSIX-ready) |
 
-**Container note:** PureScript toolchain (spago, purs, purs-tidy, purs-backend-es)
-is installed in the devcontainer image, NOT on the host. Run build/test commands
-inside the container via `podman exec -w /workspaces/purs-graphs <container> sh -c '...'`
-or just use the VSCode integrated terminal inside the devcontainer.
+**Toolchain note:** purs, spago, purs-backend-es, purs-tidy, esbuild, vite all
+live in root `package.json` devDependencies — `npm ci` puts them in
+`node_modules/.bin`. `npm run` scripts resolve them automatically; for bare
+shell commands use `npx <tool>`. No global installs needed, on host or in the
+devcontainer.
 
 **spago 1.x backend note:** spago 1.0+ no longer auto-runs `purs-backend-es` from
 the workspace config (it tries to pass `--run` which the backend doesn't accept).
@@ -84,7 +86,9 @@ produces the optimized ES output in `output-es/`. The example build scripts
 - Before changing the spago `packageSet` registry version in root `spago.yaml`
   — bumps ripple across every package
 - Before adding a new PureScript dependency to a library package
-- Before changing the devcontainer base image (Dockerfile) — affects every contributor
+- Before changing the devcontainer base image (`node:22-slim` in
+  `.devcontainer/devcontainer.json`) — verify purs/spago still run there
+  (glibc required; Alpine/musl will not work without gcompat)
 
 ## Never
 
@@ -114,9 +118,9 @@ produces the optimized ES output in `output-es/`. The example build scripts
   viz.js. You can only style its wrapper (via `#svg-container svg` CSS rule),
   not the SVG internals from PureScript.
 - **Spago 1.x requires Node 22.5+**: spago uses `node:sqlite` (unflagged in Node
-  22.13+). The devcontainer base is now `public.ecr.aws/lambda/nodejs:22`. If
-  you upgrade spago further and hit `ERR_UNKNOWN_BUILTIN_MODULE: node:sqlite`,
-  bump Node to the latest 22.x LTS.
+  22.13+). The devcontainer base is `node:22-slim`. If you upgrade spago further
+  and hit `ERR_UNKNOWN_BUILTIN_MODULE: node:sqlite`, bump Node to the latest 22.x
+  LTS (both in `devcontainer.json` and CI `setup-node`).
 - **Two output dirs**: `purs` writes `output/`, `purs-backend-es` writes
   `output-es/`. The examples import from `output-es/`. If you delete one, you
   must rebuild (`spago build` + `purs-backend-es build`).
@@ -136,9 +140,10 @@ produces the optimized ES output in `output-es/`. The example build scripts
 | `examples/dagre-demo/` | Interactive dagre playground (port 5173) | [`AGENTS.md`](examples/dagre-demo/AGENTS.md) |
 | `examples/viz-demo/` | Interactive DOT playground (port 5174) | [`AGENTS.md`](examples/viz-demo/AGENTS.md) |
 | `examples/showcase/` | 8-diagram showcase (port 5175) | [`AGENTS.md`](examples/showcase/AGENTS.md) |
+| `extensions/purs-graphs/` | VSCode extension (DOT + JSON graph previews) | [`README.md`](extensions/purs-graphs/README.md) |
 | `docs/` | architecture, developer-guide, learning-path | — |
-| `scripts/` | dev.sh, devcontainer build/push/save | — |
-| `.devcontainer/` | Dockerfile + devcontainer.json | — |
+| `scripts/` | dev.sh (HMR launcher) | — |
+| `.devcontainer/` | devcontainer.json (node:22-slim, one file) | — |
 
 ## What to read before modifying each area
 
@@ -148,4 +153,5 @@ produces the optimized ES output in `output-es/`. The example build scripts
 | Halogen example | `examples/<app>/AGENTS.md` + `Main.purs` |
 | Tailwind styles | `examples/<app>/src/styles.css` (theme tokens) + this file's "Tailwind" rule under Code Style |
 | CI | `.github/workflows/ci.yml` + the `format:check` and `test` npm scripts |
-| Devcontainer | `.devcontainer/Dockerfile` + `scripts/build-devcontainer.sh` |
+| Devcontainer | `.devcontainer/devcontainer.json` (whole config is that one file) |
+| VSCode extension | `extensions/purs-graphs/README.md` + `src/extension.ts` (host) + `webview-src/` (PureScript) |

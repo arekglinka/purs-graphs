@@ -5,14 +5,15 @@ graph-visualization FFI bindings + Tailwind-styled Halogen example apps.
 
 ## Prerequisites
 
-- A working devcontainer runtime (Podman recommended, Docker works).
-- VSCode with the "Dev Containers" extension.
+- Node 22+ and git (local) — or VSCode with the "Dev Containers" extension.
 
 ## Getting set up
 
 1. Clone the repo.
-2. **Reopen in Container** (VSCode pulls the prebuilt image — no local toolchain install needed).
-3. Run `npm install` then `npm run build` from the repo root to build all packages + examples.
+2. Either **Reopen in Container** (single-file devcontainer on `node:22-slim`,
+   toolchain installed via `npm ci`) or run `npm ci` on the host — purs, spago,
+   purs-backend-es and purs-tidy all come from root `package.json`.
+3. Run `npm run build` from the repo root to build all packages + examples.
 
 See [`docs/developer-guide.md`](docs/developer-guide.md) for per-package build/run/debug instructions.
 

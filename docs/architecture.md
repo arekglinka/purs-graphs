@@ -1,12 +1,12 @@
 # Architecture
 
-This document describes the build pipeline, devcontainer image workflow, and the
+This document describes the build pipeline, devcontainer workflow, and the
 FFI bindings data flow for purs-graphs.
 
 ## Overview
 
 purs-graphs is a PureScript monorepo providing two FFI binding packages and two
-Halogen example apps, built on a prebuilt-devcontainer workflow.
+Halogen example apps, built on a single-file devcontainer workflow.
 
 ```mermaid
 graph TB
@@ -62,39 +62,28 @@ flowchart LR
   (`src/index.js`) imports `Main` from `output-es/Main/index.js`. Vite's HMR
   triggers via `import.meta.hot.accept` when spago rebuilds.
 
-## DevContainer Image Workflow
+## DevContainer Workflow
 
-The devcontainer uses a **prebuilt image** pattern: the Dockerfile installs the
-full PureScript toolchain (spago, purs, purs-backend-es, vite, esbuild), and CI
-bakes a warm dependency cache into a published image. Teammates pull instead of
-rebuilding.
+The devcontainer is a single `devcontainer.json` — no Dockerfile, no published
+image. The base is `node:22-slim` plus the devcontainers `git` feature; the
+entire PureScript toolchain comes from root `package.json` via `npm ci` at
+container create, so tool versions are pinned by the lockfile.
 
 ```mermaid
 flowchart TB
-    DF[".devcontainer/Dockerfile<br/>AL2023 + Node 20"] -->|"podman build"| BASE["base image"]
-    BASE -->|"podman run --entrypoint '[]'"| PREP["prep container<br/>spago install + build"]
-    PREP -->|"podman commit"| FINAL["final image"]
-    FINAL -->|":sha"| GHCR["ghcr.io"]
-    FINAL -->|":latest"| GHCR
-    FINAL -->|":dev-YYYYMMDD"| GHCR
-    GHCR -->|"pull"| DEV["developer<br/>Reopen in Container"]
+    OPEN["Reopen in Container"] --> IMG["node:22-slim<br/>+ git feature"]
+    IMG --> POST["postCreateCommand<br/>npm ci"]
+    POST --> BIN["node_modules/.bin<br/>purs · spago · purs-backend-es<br/>purs-tidy · esbuild · vite"]
+    BIN --> BUILD["npm run build<br/>npm run build:ext"]
 ```
 
-- **`devcontainer.json`** has BOTH `"image"` (default — fast pull) AND `"build"`
-  (explicit rebuild from Dockerfile). No `postCreateCommand` — everything is
-  baked in.
-- **`scripts/build-devcontainer.sh`** — builds the Dockerfile, runs
-  `spago install && spago build` inside a prep container (using
-  `podman run --entrypoint '[]'` to clear the Lambda base's ENTRYPOINT), commits
-  the container state, tags with sha + latest + date, pushes to ghcr.io.
-- **`scripts/push-devcontainer.sh`** — commits a *running* container (known-good
-  state) and pushes 3 tags.
-- **`scripts/save-devcontainer-tarball.sh`** — exports to `.tar.gz` + `.sha256`
-  for airgap distribution.
-- **CI** (`.github/workflows/devcontainer.yml`) — triggers on
-  `.devcontainer/**`, `packages/**`, `examples/**`, and weekly cron for
-  security refresh. Logs into ghcr.io *before* the build script (which pushes
-  during the run).
+- Tool versions live in `package-lock.json` — upgrading the toolchain is a
+  normal npm dependency bump, not an image rebuild.
+- The devcontainer registers IDE-PureScript (language server from
+  `node_modules/.bin`), Biome, Tailwind CSS IntelliSense, and Graphviz syntax
+  highlighting.
+- There is no image publishing pipeline; CI (`ci.yml`) exercises the same
+  `npm ci` + build path on every push.
 
 ## Bindings Data Flow
 
@@ -205,5 +194,5 @@ graph LR
 | `Effect` for sync FFI, `Aff` for async | dagre layout is synchronous (Effect); viz.js instance creation is async (Aff via WASM) |
 | `Maybe`/`Either` for FFI returns | No exceptions cross the FFI boundary — nullable returns use `Nullable` → `toMaybe`, error returns use `Either` |
 | Newtypes around foreign types | `newtype Graph = Graph ForeignGraph` provides type safety without runtime cost |
-| Prebuilt devcontainer image | Fast team onboarding (pull vs rebuild); AL2023 + Node 20 base matches Lambda handoff pattern |
+| Single-file devcontainer | Zero image maintenance (toolchain pinned by package-lock.json); `node:22-slim` is small and glibc-safe for purs/spago |
 | Three-tag image publishing | `:sha` (immutable), `:latest` (mutable), `:dev-YYYYMMDD` (date-stamped for rollbacks) |

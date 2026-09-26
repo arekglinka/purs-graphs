@@ -1,33 +1,30 @@
 {
-  "name": "purs-graphs-dev",
-  "//image-comment": "Replace YOUR_GH_OWNER with your GitHub owner/org. Enterprise forks: set this to ghcr.io/<your-org>/purs-graphs-dev. The image: key is used for fast pull; the build: key enables explicit rebuilds from Dockerfile.",
-  "image": "ghcr.io/arekglinka/purs-graphs-dev:latest",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".."
+  "name": "purs-graphs",
+  "image": "node:22-slim",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
   },
+  "remoteUser": "node",
+  "forwardPorts": [5173, 5174, 5175],
+  "postCreateCommand": "npm ci",
   "customizations": {
     "vscode": {
       "extensions": [
-        "nwolverson.language-purescript",
         "nwolverson.ide-purescript",
-        "esbenp.prettier-vscode",
-        "EditorConfig.EditorConfig",
-        "eamodio.gitlens",
-        "ms-azuretools.vscode-docker"
+        "biomejs.biome",
+        "bradlc.vscode-tailwindcss",
+        "EFanZh.graphviz"
       ],
       "settings": {
         "editor.formatOnSave": true,
-        "[purescript]": {
-          "editor.defaultFormatter": "nwolverson.language-purescript"
-        },
-        "purescript.formatter": "purs-tidy",
+        "purescript.addNpmPath": true,
         "purescript.addSpagoSources": true,
-        "purescript.buildCommand": "spago build"
+        "purescript.formatter": "purs-tidy",
+        "[javascript]": { "editor.defaultFormatter": "biomejs.biome" },
+        "[json]": { "editor.defaultFormatter": "biomejs.biome" },
+        "[jsonc]": { "editor.defaultFormatter": "biomejs.biome" },
+        "[typescript]": { "editor.defaultFormatter": "biomejs.biome" }
       }
     }
-  },
-  "forwardPorts": [5173, 5174, 5175],
-  "postCreateCommand": "spago install && spago build",
-  "remoteUser": "root"
+  }
 }

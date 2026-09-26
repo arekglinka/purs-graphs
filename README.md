@@ -27,20 +27,19 @@ All three examples run as Vite-powered Halogen apps with hot-module reload.
 
 ## Quick Start
 
+Requires only Node 22+ and git (no global PureScript toolchain — `npm ci`
+installs purs, spago, purs-backend-es, purs-tidy, esbuild and vite locally):
+
 ```bash
 git clone https://github.com/YOUR_GH_OWNER/purs-graphs.git
 cd purs-graphs
-
-# Option A — open in VSCode DevContainer (recommended, pulls prebuilt image)
-#   Reopen in Container → ready in seconds
-
-# Option B — host with Node 20+ and the devcontainer CLI
-npm install
+npm ci
 ./scripts/dev.sh showcase   # HMR dev server on http://localhost:5175
 ```
 
-> Replace `YOUR_GH_OWNER` with your GitHub owner/org (see
-> [Enterprise Forks](#enterprise-forks)).
+Or open in **VSCode DevContainer** — the devcontainer is a single
+`devcontainer.json` on `node:22-slim`; `npm ci` runs on container create.
+See [DevContainer](#devcontainer).
 
 ## Build & Test
 
@@ -73,10 +72,11 @@ purs-graphs/
 │   ├── dagre-demo/        Interactive dagre playground  (port 5173)
 │   ├── viz-demo/          Interactive DOT playground    (port 5174)
 │   └── showcase/          ByteByteGo 8-diagram showcase (port 5175)
-├── scripts/               dev.sh, devcontainer build/push/save
+├── scripts/               dev.sh (HMR dev-server launcher)
 ├── docs/                  architecture.md, developer-guide.md, learning-path.md
-├── .devcontainer/         AL2023 + Node 20 prebuilt image
-└── .github/workflows/     ci.yml (build + test), release.yml, devcontainer.yml
+├── extensions/purs-graphs/ VSCode extension (DOT + JSON graph previews)
+├── .devcontainer/         one devcontainer.json on node:22-slim
+└── .github/workflows/     ci.yml (build + test), release.yml (bindings)
 ```
 
 Each library package uses a **two-layer FFI pattern**:
@@ -101,35 +101,30 @@ them in each `vite.config.ts`.
 | Bundler | Vite 5 with HMR |
 | Tests | purescript-spec + spec-node + purescript-quickcheck |
 | Formatter | purs-tidy (`.tidyrc.json`) + biome (JS/TS/JSON) |
-| DevContainer | Amazon Linux 2023 + Node 22 (prebuilt image pattern) |
+| DevContainer | `node:22-slim` (one `devcontainer.json`, toolchain via `npm ci`) |
 
 ## Enterprise Forks
 
 This repo is enterprise-forkable — **no hardcoded GitHub paths**.
 
 1. Fork the repo.
-2. Update `.devcontainer/devcontainer.json`: replace `YOUR_GH_OWNER` with your
-   GitHub owner or org.
-3. Update `.github/CODEOWNERS`: replace `YOUR_GH_OWNER`.
-4. The scripts auto-detect the owner from `git remote get-url origin`. Override
-   with `OWNER=my-org ./scripts/build-devcontainer.sh`.
-5. CI uses `${{ github.repository_owner }}` — no changes needed.
+2. Update `.github/CODEOWNERS`: replace `YOUR_GH_OWNER`.
+3. CI uses `${{ github.repository_owner }}` — no changes needed. The
+   devcontainer is registry-agnostic (`node:22-slim` + npm).
 
 ## DevContainer
 
-The devcontainer uses a **prebuilt image** pattern:
+A single `.devcontainer/devcontainer.json` — no Dockerfile, no prebuilt image:
 
-- **`image:`** key — fast pull for daily use.
-- **`build:`** key — explicit rebuild from Dockerfile when the toolchain changes.
-- No `postCreateCommand` — everything is baked into the published image.
-
-### Rebuild the image
-
-```bash
-./scripts/build-devcontainer.sh          # build + push to ghcr.io
-./scripts/push-devcontainer.sh           # commit + push running container
-./scripts/save-devcontainer-tarball.sh   # airgap tarball + sha256
-```
+- **Base**: `node:22-slim` + the devcontainers `git` feature.
+- **Toolchain**: nothing baked in — `postCreateCommand` runs `npm ci`, which
+  installs purs, spago, purs-backend-es, purs-tidy, esbuild, vite, and the
+  PureScript language server from `package.json` (versioned in the lockfile).
+- **VSCode extensions**: IDE-PureScript (language server + purs-tidy format on
+  save), Biome (JS/TS/JSON lint + format), Tailwind CSS IntelliSense, Graphviz
+  syntax highlighting.
+- From-scratch builds: `npm run build` (PureScript), `npm run build:ext`
+  (VSCode extension incl. viz.js WASM bundling).
 
 ## Documentation
 

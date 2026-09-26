@@ -22,29 +22,20 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Install PureScript toolchain
-        run: |
-          npm install -g spago@latest purescript@0.15.16 purs-backend-es purs-tidy
-          spago --version
-          purs --version
+      - name: Install npm deps (includes purs, spago, purs-backend-es, purs-tidy)
+        run: npm ci
 
-      - name: Install workspace npm deps
-        run: npm ci || npm install
+      - name: Check formatting (purs-tidy + biome)
+        run: npm run format:check
 
-      - name: Check formatting (purs-tidy)
-        run: purs-tidy check $(find . -name '*.purs' -not -path './output*' -not -path './.spago*')
-
-      - name: spago install (workspace)
-        run: spago install
-
-      - name: spago build (workspace — all packages + examples)
-        run: spago build
+      - name: Build workspace (all packages + examples)
+        run: npm run build
 
       - name: Test purs-dagre
-        run: spago test -p purs-dagre
+        run: npx spago test -p purs-dagre
 
       - name: Test purs-viz
-        run: spago test -p purs-viz
+        run: npx spago test -p purs-viz
 
       - name: Build dagre-demo example
         run: |
@@ -72,16 +63,11 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install PureScript toolchain
+      - name: Install npm deps + build workspace
         run: |
-          npm install -g spago@latest purescript@0.15.16 purs-backend-es purs-tidy
-
-      - name: Build workspace
-        run: |
-          npm ci || npm install
-          spago install
-          spago build
-          purs-backend-es build --corefn-dir output --output-dir output-es
+          npm ci
+          npm run build
+          npx purs-backend-es build --corefn-dir output --output-dir output-es
 
       - name: Typecheck + build extension bundles
         run: |

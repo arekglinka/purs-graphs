@@ -21,26 +21,22 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Install PureScript toolchain
-        run: npm install -g spago@latest purescript@0.15.16 purs-backend-es esbuild
-
       - name: Install deps + build workspace
         run: |
-          npm ci || npm install
-          spago install
-          spago build
+          npm ci
+          npm run build
 
       - name: Bundle purs-dagre FFI bindings
         run: |
           mkdir -p dist
-          esbuild packages/purs-dagre/src/Dagre.js \
+          npx esbuild packages/purs-dagre/src/Dagre.js \
             --bundle --platform=browser --format=esm \
             --external:dagre \
             --outfile=dist/purs-dagre-bindings.js
 
       - name: Bundle purs-viz FFI bindings
         run: |
-          esbuild packages/purs-viz/src/Viz.js \
+          npx esbuild packages/purs-viz/src/Viz.js \
             --bundle --platform=browser --format=esm \
             --external:@viz-js/viz \
             --outfile=dist/purs-viz-bindings.js

@@ -2,18 +2,18 @@
 
 ## Prerequisites
 
-The only local requirement is a devcontainer runtime (Podman recommended,
-Docker works). All toolchain is inside the prebuilt image.
+Node 22+ and git. Everything else (purs, spago, purs-backend-es, purs-tidy,
+esbuild, vite) is installed locally by `npm ci` — no global toolchain.
 
 ## Getting Started
 
 1. Clone the repo.
-2. In VSCode: **Reopen in Container** (pulls `ghcr.io/<owner>/purs-graphs-dev:latest`).
+2. Either run `npm ci` on the host, or open in VSCode and **Reopen in
+   Container** (single-file devcontainer on `node:22-slim`).
 3. Verify the build:
 
 ```bash
-spago install   # install all workspace dependencies
-spago build     # build all packages + examples
+npm run build   # spago build — all packages + examples
 ```
 
 ## Workspace Layout
@@ -28,7 +28,8 @@ purs-graphs/
 ├── examples/
 │   ├── dagre-demo/         # Halogen + SVG via dagre layout
 │   └── viz-demo/           # Halogen + DOT→SVG via viz.js
-├── scripts/                # devcontainer build/push/save + dev launcher
+├── scripts/                # dev.sh (HMR dev-server launcher)
+├── extensions/purs-graphs/ # VSCode extension (DOT + JSON graph previews)
 └── docs/
 ```
 
@@ -141,44 +142,30 @@ npm run build   # spago build && purs-backend-es build && vite build → dist/
 
 ## DevContainer
 
-### Rebuilding the image
+The devcontainer is one file: `.devcontainer/devcontainer.json`.
 
-When `.devcontainer/Dockerfile` changes:
-
-```bash
-./scripts/build-devcontainer.sh     # builds + pushes to ghcr.io
-```
-
-### Saving a known-good state
-
-If your running container is in a good state:
-
-```bash
-./scripts/push-devcontainer.sh      # commits + pushes running container
-```
-
-### Airgap distribution
-
-```bash
-./scripts/save-devcontainer-tarball.sh   # produces .tar.gz + .sha256
-```
+- Base image `node:22-slim`, `git` provided by a devcontainer feature.
+- `postCreateCommand` runs `npm ci` — all toolchain comes from root
+  `package.json` (versioned in `package-lock.json`).
+- No Dockerfile, no prebuilt image, no registry dependency. Changing the image
+  tag in the one file is the whole upgrade path.
 
 ## Debugging
 
 ### Common issues
 
-- **`spago: command not found`** — you're outside the devcontainer. Reopen in
-  container, or `npm install -g spago@next` locally.
+- **`spago: command not found`** — run `npm ci` first; then use `npx spago …`
+  for bare shell commands (npm scripts resolve it automatically).
 - **`Cannot find module 'dagre'`** — the JS peer-dep isn't installed. Run
   `npm install` in the example directory.
 - **HMR not updating** — ensure `spago build --watch` is running (check the
   concurrently output). The ES backend must regenerate `output-es/`.
 - **Tests can't find viz.js** — viz.js tests need a browser or jsdom
-  environment (WASM). Run them in the devcontainer.
+  environment (WASM). Run them inside the devcontainer or on a host with Node 22.
 
 ### Purs IDE
 
-The devcontainer includes the PureScript Language Server (via the
-`nwolverson.ide-purescript` VSCode extension). It uses spago as the build
-command. If it's not finding modules, run `spago build` once to generate
-`output/`.
+The devcontainer ships the `nwolverson.ide-purescript` VSCode extension with
+`purescript.addNpmPath: true`, so it uses `purs` and `purescript-language-server`
+from `node_modules/.bin` (installed by `npm ci`). If it's not finding modules,
+run `npm run build` once to generate `output/`.

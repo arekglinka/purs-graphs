@@ -61,7 +61,7 @@ the webview runs under a strict CSP (nonce + `wasm-unsafe-eval`).
 
 ## Build
 
-Requires Node 22+ (same toolchain as the devcontainer).
+Requires Node 22+ (`npm ci` at the workspace root provides the toolchain).
 
 ```bash
 cd extensions/purs-graphs
